@@ -4,4 +4,114 @@
     ViewData["Title"] = Model.Config?.NombreTienda ?? "Carnicería";
 }
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>@ViewData["Title"]</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh}.header{background:white;padding:15px;position:sticky;top:0}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.btn{padding:10px 16px;border:none;border-radius:8px;background:#25D366;color:white;font-weight:600}.main{max-width:1200px;margin:0 auto;padding:15px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px}.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.card img{width:100%;aspect-ratio:1/1;object-fit:cover}.card-body{padding:12px}.name{font-size:14px;font-weight:600;color:#333;margin-bottom:4px}.price{font-size:16px;color:#28a745;font-weight:700;margin-bottom:8px}.qty{width:100%;padding:8px;border:2px solid #ddd;border-radius:6px;margin-bottom:8px;font-size:14px}.add{width:100%;padding:10px;background:#667eea;color:white;border:none;border-radius:6px;font-weight:600}@@media(min-width:480px){.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}@@media(min-width:768px){.grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}}</style></head><body><header class="header"><div class="header-content"><div class="logo">🥩 @(Model.Config?.NombreTienda??"Carnicería")</div><button class="btn" onclick="alert('Carrito: '+(JSON.parse(localStorage.getItem('carrito')||'[]').length)+' items')">🛒</button></div></header><main class="main"><h1 style="color:white;text-align:center;margin-bottom:20px">@ViewData["Title"]</h1>@if(Model.Productos?.Any()==true){<div class="grid">@foreach(var p in Model.Productos.Where(x=>x.Activo)){<div class="card"><img src="@(p.ImagenUrl??"https://via.placeholder.com/300")" alt="@p.Nombre" onerror="this.src='https://via.placeholder.com/300'"><div class="card-body"><div class="name">@p.Nombre</div><div class="price">$@p.PrecioPorKilo.ToString("F2")/kg</div><input type="number" class="qty" id="q-@p.Id" min="0.5" step="0.5" value="1"><button class="add" onclick="add(@p.Id,'@p.Nombre',@p.PrecioPorKilo)">Agregar</button></div></div>}}</div>}else{<p style="text-align:center;color:white">📭 Sin productos</p>}</main><script>function add(id,n,p){const q=parseFloat(document.getElementById('q-'+id).value)||1;let c=JSON.parse(localStorage.getItem('carrito')||'[]');const e=c.find(x=>x.id===id);if(e)e.cantidad+=q;else c.push({id,nombre:n,precioPorKilo:p,cantidad:q});localStorage.setItem('carrito',JSON.stringify(c));alert('✅ Agregado: '+n+' x'+q+'kg');}</script></body></html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box }
+        body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh }
+        .header { background: white; padding: 15px; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1) }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center }
+        .logo { font-size: 20px; font-weight: bold; color: #333 }
+        .nav { display: flex; gap: 10px }
+        .btn { padding: 10px 16px; border: none; border-radius: 8px; text-decoration: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px }
+        .btn-cart { background: #25D366; color: white }
+        .btn-admin { background: #667eea; color: white }
+        .main { max-width: 1200px; margin: 0 auto; padding: 15px }
+        h1 { color: white; text-align: center; margin-bottom: 20px }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px }
+        .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1) }
+        .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover }
+        .card-body { padding: 12px }
+        .name { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px }
+        .price { font-size: 16px; color: #28a745; font-weight: 700; margin-bottom: 8px }
+        .qty { width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; margin-bottom: 8px; font-size: 14px }
+        .add { width: 100%; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer }
+        .add:hover { background: #5568d3 }
+        .empty { text-align: center; color: white; padding: 40px }
+        @@media (min-width: 480px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) } }
+        @@media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">🥩 @(Model.Config?.NombreTienda ?? "Carnicería")</div>
+            <nav class="nav">
+                <a href="/Admin/Login" class="btn btn-admin">🔐 Admin</a>
+                <button class="btn btn-cart" onclick="verCarrito()">🛒 Carrito</button>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="main">
+        <h1>@ViewData["Title"]</h1>
+        
+        @if (Model.Productos?.Any() == true)
+        {
+            <div class="grid">
+                @foreach (var p in Model.Productos.Where(x => x.Activo))
+                {
+                    <div class="card">
+                        <img src="@(p.ImagenUrl ?? "https://via.placeholder.com/300")" 
+                             alt="@p.Nombre" 
+                             onerror="this.src='https://via.placeholder.com/300'">
+                        <div class="card-body">
+                            <div class="name">@p.Nombre</div>
+                            <div class="price">$@p.PrecioPorKilo.ToString("F2")/kg</div>
+                            <input type="number" 
+                                   class="qty" 
+                                   id="q-@p.Id" 
+                                   min="0.5" 
+                                   step="0.5" 
+                                   value="1">
+                            <button class="add" onclick="agregar(@p.Id, '@p.Nombre', @p.PrecioPorKilo)">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty">
+                <h2>📭 Sin productos</h2>
+                <p>Pronto vamos a tener cortes frescos para vos</p>
+            </div>
+        }
+    </main>
+    
+    <script>
+        function agregar(id, nombre, precio) {
+            const qtyInput = document.getElementById('q-' + id);
+            const cantidad = parseFloat(qtyInput.value) || 1;
+            
+            let carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
+            const existe = carrito.find(x => x.id === id);
+            
+            if (existe) {
+                existe.cantidad += cantidad;
+            } else {
+                carrito.push({
+                    id: id,
+                    nombre: nombre,
+                    precioPorKilo: precio,
+                    cantidad: cantidad
+                });
+            }
+            
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+            alert('✅ Agregado: ' + nombre + ' x' + cantidad + 'kg');
+        }
+        
+        function verCarrito() {
+            const carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
+            const total = carrito.reduce((sum, item) => sum + (item.precioPorKilo * item.cantidad), 0);
+            alert('🛒 Carrito (' + carrito.length + ' items)\n\nTotal: $' + total.toFixed(2));
+        }
+    </script>
+</body>
+</html>
