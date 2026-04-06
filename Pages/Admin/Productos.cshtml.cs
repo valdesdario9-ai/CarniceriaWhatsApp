@@ -10,11 +10,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
     public class ProductosModel : PageModel
     {
         private readonly ISupabaseService _supabase;
-        
-        public ProductosModel(ISupabaseService supabase)
-        {
-            _supabase = supabase;
-        }
+        public ProductosModel(ISupabaseService supabase) => _supabase = supabase;
         
         public List<Producto> Productos { get; set; } = new List<Producto>();
         
