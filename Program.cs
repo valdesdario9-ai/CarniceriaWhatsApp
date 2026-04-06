@@ -3,7 +3,6 @@ using CarniceriaWhatsApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar servicios
 builder.Services.AddHttpClient<ISupabaseService, SupabaseService>();
 builder.Services.AddRazorPages();
 builder.Services.AddDistributedMemoryCache();
@@ -15,7 +14,6 @@ builder.Services.AddSession(options => {
 
 var app = builder.Build();
 
-// Configurar pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
