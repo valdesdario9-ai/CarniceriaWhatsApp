@@ -21,12 +21,14 @@ namespace CarniceriaWhatsApp.Services
         {
             _httpClient = httpClient;
             _supabaseUrl = Environment.GetEnvironmentVariable("Supabase__Url") 
-                ?? "https://TU-PROYECTO.supabase.co";
-            _supabaseKey = Environment.GetEnvironmentVariable("Supabase__ApiKey") 
-                ?? "TU-API-KEY";
+                ?? "https://wfmoyssyoyqnxqjqedcc.supabase.co";
+            _supabaseKey = Environment.GetEnvironmentVariable("Supabase__ApiKey");
             
-            _httpClient.DefaultRequestHeaders.Add("apikey", _supabaseKey);
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_supabaseKey}");
+            if (!string.IsNullOrEmpty(_supabaseKey))
+            {
+                _httpClient.DefaultRequestHeaders.Add("apikey", _supabaseKey);
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_supabaseKey}");
+            }
             _httpClient.BaseAddress = new Uri(_supabaseUrl);
         }
         
@@ -35,16 +37,10 @@ namespace CarniceriaWhatsApp.Services
             try
             {
                 var response = await _httpClient.GetAsync("/rest/v1/productos_carniceria?select=*&activo=eq.true");
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return new List<Producto>();
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode) return new List<Producto>();
                 return await response.Content.ReadFromJsonAsync<List<Producto>>() ?? new List<Producto>();
             }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[SUPABASE] ERROR: {ex.Message}");
-                return new List<Producto>();
-            }
+            catch { return new List<Producto>(); }
         }
         
         public async Task<Producto> ObtenerProductoAsync(int id)
@@ -52,24 +48,25 @@ namespace CarniceriaWhatsApp.Services
             try
             {
                 var response = await _httpClient.GetAsync($"/rest/v1/productos_carniceria?id=eq.{id}&select=*");
-                response.EnsureSuccessStatusCode();
-                var productos = await response.Content.ReadFromJsonAsync<List<Producto>>();
-                return productos?.FirstOrDefault();
+                if (!response.IsSuccessStatusCode) return null;
+                var list = await response.Content.ReadFromJsonAsync<List<Producto>>();
+                return list?.Count > 0 ? list[0] : null;
             }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[SUPABASE] ERROR: {ex.Message}");
-                return null;
-            }
+            catch { return null; }
         }
         
         public async Task<Producto> CrearProductoAsync(Producto producto)
         {
             try
             {
+                // Si no hay imagen, usar placeholder
+                if (string.IsNullOrEmpty(producto.ImagenUrl))
+                    producto.ImagenUrl = "https://via.placeholder.com/300";
+                
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
                 var json = JsonSerializer.Serialize(producto, options);
                 
+                // Remover id si es 0 para que la BD lo genere
                 if (producto.Id == 0)
                 {
                     json = Regex.Replace(json, @"""id"":\s*0,?", "").Trim();
@@ -82,24 +79,16 @@ namespace CarniceriaWhatsApp.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    System.Console.WriteLine($"[SUPABASE] ERROR: {error}");
+                    Console.WriteLine($"[ERROR CREAR] {response.StatusCode}: {error}");
                     return producto;
                 }
                 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                if (string.IsNullOrWhiteSpace(responseContent) || responseContent.Trim() == "[]")
-                    return producto;
-                
-                try
-                {
-                    var productos = await response.Content.ReadFromJsonAsync<List<Producto>>();
-                    return productos?.FirstOrDefault() ?? producto;
-                }
-                catch { return producto; }
+                var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
+                return result?.Count > 0 ? result[0] : producto;
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"[SUPABASE] EXCEPTION: {ex.Message}");
+                Console.WriteLine($"[EXCEPTION CREAR] {ex.Message}");
                 return producto;
             }
         }
@@ -120,25 +109,12 @@ namespace CarniceriaWhatsApp.Services
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PatchAsync($"/rest/v1/productos_carniceria?id=eq.{id}&select=*", content);
                 
-                if (!response.IsSuccessStatusCode)
-                    return producto;
+                if (!response.IsSuccessStatusCode) return producto;
                 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                if (string.IsNullOrWhiteSpace(responseContent) || responseContent.Trim() == "[]")
-                    return producto;
-                
-                try
-                {
-                    var productos = await response.Content.ReadFromJsonAsync<List<Producto>>();
-                    return productos?.FirstOrDefault() ?? producto;
-                }
-                catch { return producto; }
+                var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
+                return result?.Count > 0 ? result[0] : producto;
             }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[SUPABASE] ERROR: {ex.Message}");
-                return producto;
-            }
+            catch { return producto; }
         }
         
         public async Task<bool> EliminarProductoAsync(int id)
@@ -148,46 +124,47 @@ namespace CarniceriaWhatsApp.Services
                 var response = await _httpClient.DeleteAsync($"/rest/v1/productos_carniceria?id=eq.{id}");
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[SUPABASE] ERROR: {ex.Message}");
-                return false;
-            }
+            catch { return false; }
         }
         
         public async Task<string> SubirImagenAsync(Stream imagenStream, string fileName, string contentType)
         {
             try
             {
+                // Si no hay key, retornar placeholder
+                if (string.IsNullOrEmpty(_supabaseKey))
+                    return "https://via.placeholder.com/300";
+                
                 using (var ms = new MemoryStream())
                 {
                     await imagenStream.CopyToAsync(ms);
                     var bytes = ms.ToArray();
-                    var url = $"{_supabaseUrl}/storage/v1/object/productos-carniceria/{fileName}";
                     
-                    using (var content = new ByteArrayContent(bytes))
+                    var uploadUrl = $"{_supabaseUrl}/storage/v1/object/productos-carniceria/{fileName}";
+                    
+                    using (var client = new HttpClient())
                     {
-                        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-                        using (var client = new HttpClient())
+                        client.DefaultRequestHeaders.Add("apikey", _supabaseKey);
+                        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_supabaseKey}");
+                        
+                        using (var content = new ByteArrayContent(bytes))
                         {
-                            client.DefaultRequestHeaders.Add("apikey", _supabaseKey);
-                            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_supabaseKey}");
-                            var response = await client.PutAsync(url, content);
+                            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                            var response = await client.PutAsync(uploadUrl, content);
                             
                             if (response.IsSuccessStatusCode)
                                 return $"{_supabaseUrl}/storage/v1/object/public/productos-carniceria/{fileName}";
                             
-                            var error = await response.Content.ReadAsStringAsync();
-                            System.Console.WriteLine($"[STORAGE] Error: {error}");
-                            throw new Exception($"Error subiendo imagen: {response.StatusCode}");
+                            Console.WriteLine($"[STORAGE ERROR] {response.StatusCode}");
+                            return "https://via.placeholder.com/300";
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"[STORAGE] EXCEPTION: {ex.Message}");
-                throw;
+                Console.WriteLine($"[STORAGE EXCEPTION] {ex.Message}");
+                return "https://via.placeholder.com/300";
             }
         }
         
@@ -196,8 +173,7 @@ namespace CarniceriaWhatsApp.Services
             try
             {
                 var response = await _httpClient.GetAsync("/rest/v1/configuracion_carniceria?select=*&order=id.asc&limit=1");
-                if (!response.IsSuccessStatusCode)
-                    return new ConfiguracionCarniceria();
+                if (!response.IsSuccessStatusCode) return new ConfiguracionCarniceria();
                 
                 var content = await response.Content.ReadAsStringAsync();
                 if (string.IsNullOrWhiteSpace(content) || content.Trim() == "[]")
@@ -206,8 +182,7 @@ namespace CarniceriaWhatsApp.Services
                 using (var doc = JsonDocument.Parse(content))
                 {
                     var root = doc.RootElement;
-                    if (root.GetArrayLength() == 0)
-                        return new ConfiguracionCarniceria();
+                    if (root.GetArrayLength() == 0) return new ConfiguracionCarniceria();
                     
                     var item = root[0];
                     var config = new ConfiguracionCarniceria();
@@ -215,32 +190,28 @@ namespace CarniceriaWhatsApp.Services
                     if (item.TryGetProperty("id", out var p) && p.ValueKind != JsonValueKind.Null)
                         config.Id = p.TryGetInt64(out var v) ? v : null;
                     
-                    config.NombreTienda = GetPropString(item, "nombre_tienda");
-                    config.Descripcion = GetPropString(item, "descripcion");
-                    config.Whatsapp = GetPropString(item, "whatsapp");
-                    config.Telefono = GetPropString(item, "telefono");
-                    config.Email = GetPropString(item, "email");
-                    config.Direccion = GetPropString(item, "direccion");
-                    config.Ciudad = GetPropString(item, "ciudad");
-                    config.Provincia = GetPropString(item, "provincia");
-                    config.LogoUrl = GetPropString(item, "logo_url");
-                    config.BannerUrl = GetPropString(item, "banner_url");
-                    config.Horarios = GetPropString(item, "horarios");
-                    config.AliasMercadoPago = GetPropString(item, "alias_mercadopago");
-                    config.Cbu = GetPropString(item, "cbu");
-                    config.InstruccionesPago = GetPropString(item, "instrucciones_pago");
+                    config.NombreTienda = GetStr(item, "nombre_tienda");
+                    config.Descripcion = GetStr(item, "descripcion");
+                    config.Telefono = GetStr(item, "telefono");
+                    config.Whatsapp = GetStr(item, "whatsapp");
+                    config.Email = GetStr(item, "email");
+                    config.Direccion = GetStr(item, "direccion");
+                    config.Ciudad = GetStr(item, "ciudad");
+                    config.Provincia = GetStr(item, "provincia");
+                    config.LogoUrl = GetStr(item, "logo_url");
+                    config.BannerUrl = GetStr(item, "banner_url");
+                    config.Horarios = GetStr(item, "horarios");
+                    config.AliasMercadoPago = GetStr(item, "alias_mercadopago");
+                    config.Cbu = GetStr(item, "cbu");
+                    config.InstruccionesPago = GetStr(item, "instrucciones_pago");
                     
                     return config;
                 }
             }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[CONFIG] ERROR: {ex.Message}");
-                return new ConfiguracionCarniceria();
-            }
+            catch { return new ConfiguracionCarniceria(); }
         }
         
-        private string GetPropString(JsonElement item, string name)
+        private string GetStr(JsonElement item, string name)
         {
             if (item.TryGetProperty(name, out var prop) && prop.ValueKind != JsonValueKind.Null)
                 return prop.GetString() ?? "";
@@ -275,63 +246,22 @@ namespace CarniceriaWhatsApp.Services
                 {
                     var url = $"/rest/v1/configuracion_carniceria?id=eq.{config.Id}&select=*";
                     var response = await _httpClient.PatchAsync(url, content);
+                    if (!response.IsSuccessStatusCode) return config;
                     
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var error = await response.Content.ReadAsStringAsync();
-                        System.Console.WriteLine($"[CONFIG] ERROR update: {error}");
-                        return config;
-                    }
-                    
-                    if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
-                    {
-                        System.Console.WriteLine($"[CONFIG] UPDATE exitoso (204), haciendo GET...");
-                        return await ObtenerConfiguracionAsync();
-                    }
-                    
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    if (string.IsNullOrWhiteSpace(responseContent) || responseContent.Trim() == "[]")
-                        return await ObtenerConfiguracionAsync();
-                    
-                    try
-                    {
-                        var configs = await response.Content.ReadFromJsonAsync<List<ConfiguracionCarniceria>>();
-                        return configs?.FirstOrDefault() ?? await ObtenerConfiguracionAsync();
-                    }
-                    catch
-                    {
-                        return await ObtenerConfiguracionAsync();
-                    }
+                    var result = await response.Content.ReadFromJsonAsync<List<ConfiguracionCarniceria>>();
+                    return result?.Count > 0 ? result[0] : config;
                 }
                 else
                 {
                     var url = "/rest/v1/configuracion_carniceria?select=*";
                     var response = await _httpClient.PostAsync(url, content);
+                    if (!response.IsSuccessStatusCode) return config;
                     
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var error = await response.Content.ReadAsStringAsync();
-                        System.Console.WriteLine($"[CONFIG] ERROR insert: {error}");
-                        return config;
-                    }
-                    
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    if (string.IsNullOrWhiteSpace(responseContent) || responseContent.Trim() == "[]")
-                        return config;
-                    
-                    try
-                    {
-                        var configs = await response.Content.ReadFromJsonAsync<List<ConfiguracionCarniceria>>();
-                        return configs?.FirstOrDefault() ?? config;
-                    }
-                    catch { return config; }
+                    var result = await response.Content.ReadFromJsonAsync<List<ConfiguracionCarniceria>>();
+                    return result?.Count > 0 ? result[0] : config;
                 }
             }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[CONFIG] ERROR: {ex.Message}");
-                return new ConfiguracionCarniceria();
-            }
+            catch { return new ConfiguracionCarniceria(); }
         }
     }
 }
