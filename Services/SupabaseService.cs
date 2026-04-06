@@ -59,14 +59,12 @@ namespace CarniceriaWhatsApp.Services
         {
             try
             {
-                // Si no hay imagen, usar placeholder
                 if (string.IsNullOrEmpty(producto.ImagenUrl))
                     producto.ImagenUrl = "https://via.placeholder.com/300";
                 
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
                 var json = JsonSerializer.Serialize(producto, options);
                 
-                // Remover id si es 0 para que la BD lo genere
                 if (producto.Id == 0)
                 {
                     json = Regex.Replace(json, @"""id"":\s*0,?", "").Trim();
@@ -76,67 +74,55 @@ namespace CarniceriaWhatsApp.Services
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("/rest/v1/productos_carniceria?select=*", content);
                 
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[ERROR CREAR] {response.StatusCode}: {error}");
-                    return producto;
-                }
+                if (!response.IsSuccessStatusCode) return producto;
                 
                 var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
                 return result?.Count > 0 ? result[0] : producto;
             }
+            catch { return producto; }
+        }
+        
+        public async Task<Producto> ActualizarProductoAsync(int id, Producto producto)
+        {
+            try
+            {
+                var updateData = new
+                {
+                    nombre = producto.Nombre,
+                    precio_por_kilo = producto.PrecioPorKilo,
+                    imagen_url = producto.ImagenUrl,
+                    categoria = producto.Categoria,
+                    activo = producto.Activo
+                };
+                
+                var options = new JsonSerializerOptions 
+                { 
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                };
+                
+                var json = JsonSerializer.Serialize(updateData, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var url = $"/rest/v1/productos_carniceria?id=eq.{id}&select=*";
+                var response = await _httpClient.PatchAsync(url, content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[UPDATE ERROR] {response.StatusCode}: {error}");
+                    return null;
+                }
+                
+                var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
+                return result?.Count > 0 ? result[0] : null;
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EXCEPTION CREAR] {ex.Message}");
-                return producto;
+                Console.WriteLine($"[UPDATE EXCEPTION] {ex.Message}");
+                return null;
             }
         }
-        
-       public async Task<Producto> ActualizarProductoAsync(int id, Producto producto)
-{
-    try
-    {
-        // Crear un objeto solo con los campos a actualizar (sin id)
-        var updateData = new
-        {
-            nombre = producto.Nombre,
-            precio_por_kilo = producto.PrecioPorKilo,
-            imagen_url = producto.ImagenUrl,
-            categoria = producto.Categoria,
-            activo = producto.Activo
-        };
-        
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-        
-        var json = JsonSerializer.Serialize(updateData, options);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
-        // Usar PATCH con filtro por id y solicitar el resultado actualizado
-        var url = $"/rest/v1/productos_carniceria?id=eq.{id}&select=*";
-        var response = await _httpClient.PatchAsync(url, content);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"[UPDATE ERROR] {response.StatusCode}: {error}");
-            return null;
-        }
-        
-        // Leer el resultado actualizado
-        var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
-        return result?.Count > 0 ? result[0] : null;
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[UPDATE EXCEPTION] {ex.Message}");
-        return null;
-    }
-}
         
         public async Task<bool> EliminarProductoAsync(int id)
         {
@@ -152,7 +138,6 @@ namespace CarniceriaWhatsApp.Services
         {
             try
             {
-                // Si no hay key, retornar placeholder
                 if (string.IsNullOrEmpty(_supabaseKey))
                     return "https://via.placeholder.com/300";
                 
@@ -176,15 +161,13 @@ namespace CarniceriaWhatsApp.Services
                             if (response.IsSuccessStatusCode)
                                 return $"{_supabaseUrl}/storage/v1/object/public/productos-carniceria/{fileName}";
                             
-                            Console.WriteLine($"[STORAGE ERROR] {response.StatusCode}");
                             return "https://via.placeholder.com/300";
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"[STORAGE EXCEPTION] {ex.Message}");
                 return "https://via.placeholder.com/300";
             }
         }
