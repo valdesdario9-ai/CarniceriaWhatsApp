@@ -38,7 +38,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
             {
                 Message = "❌ Producto no encontrado";
                 IsError = true;
-                return Page();
             }
             
             return Page();
@@ -46,7 +45,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
         
         public async Task<IActionResult> OnPostAsync()
         {
-            // Validar que tenemos un producto válido
             if (Producto == null || Producto.Id <= 0)
             {
                 Message = "❌ ID de producto inválido";
@@ -54,7 +52,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 return Page();
             }
             
-            // Validar campos obligatorios
             if (string.IsNullOrWhiteSpace(Producto.Nombre))
             {
                 Message = "❌ El nombre es obligatorio";
@@ -74,30 +71,39 @@ namespace CarniceriaWhatsApp.Pages.Admin
             {
                 try
                 {
+                    System.Console.WriteLine($"[IMAGEN] Procesando archivo: {ImagenFile.FileName} ({ImagenFile.Length} bytes)");
+                    
                     using (var stream = ImagenFile.OpenReadStream())
                     {
                         var extension = Path.GetExtension(ImagenFile.FileName).ToLower();
                         var fileName = $"prod_{Guid.NewGuid()}{extension}";
+                        
+                        System.Console.WriteLine($"[IMAGEN] Subiendo: {fileName}");
+                        
                         Producto.ImagenUrl = await _supabase.SubirImagenAsync(stream, fileName, ImagenFile.ContentType);
+                        
+                        System.Console.WriteLine($"[IMAGEN] URL resultante: {Producto.ImagenUrl}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ERROR IMAGEN] {ex.Message}");
-                    // Continuar sin actualizar la imagen si falla
+                    System.Console.WriteLine($"[IMAGEN ERROR] {ex.Message}");
+                    Message = "⚠️ Producto actualizado pero imagen falló: " + ex.Message;
+                    IsError = true;
                 }
             }
             
-            // Actualizar el producto en la base de datos
             try
             {
+                System.Console.WriteLine($"[UPDATE] Actualizando producto {Producto.Id}");
+                
                 var actualizado = await _supabase.ActualizarProductoAsync(Producto.Id, Producto);
                 
                 if (actualizado != null)
                 {
                     Message = "✅ Producto actualizado correctamente";
                     IsError = false;
-                    // Esperar un poco para asegurar que la BD se actualizó
+                    System.Console.WriteLine($"[UPDATE] Éxito");
                     await Task.Delay(100);
                     return RedirectToPage("Productos");
                 }
@@ -105,16 +111,16 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 {
                     Message = "⚠️ No se pudo confirmar la actualización";
                     IsError = true;
+                    System.Console.WriteLine($"[UPDATE] Retornó null");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR UPDATE] {ex.Message}");
+                System.Console.WriteLine($"[UPDATE ERROR] {ex.Message}");
                 Message = "❌ Error al actualizar: " + ex.Message;
                 IsError = true;
             }
             
-            // Si llegamos acá, recargar el producto para mostrar los datos actuales
             Producto = await _supabase.ObtenerProductoAsync(Producto.Id);
             return Page();
         }
