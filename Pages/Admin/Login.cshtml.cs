@@ -7,14 +7,11 @@ namespace CarniceriaWhatsApp.Pages.Admin
     {
         public string Message { get; set; } = "";
         
-        public IActionResult OnGet()
-        {
-            return Page();
-        }
+        public IActionResult OnGet() => Page();
         
         public IActionResult OnPost(string Username, string Password)
         {
-            // ✅ Usuario y contraseña simples (cambiar en producción)
+            // ✅ Usuario y contraseña (CAMBIAR en producción)
             if (Username == "admin" && Password == "admin123")
             {
                 HttpContext.Session.SetString("AdminLogged", "true");
