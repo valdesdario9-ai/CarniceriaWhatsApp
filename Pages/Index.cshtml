@@ -13,14 +13,14 @@
         * { margin: 0; padding: 0; box-sizing: border-box }
         body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh; display: flex; flex-direction: column }
         
-        /* ✅ Header optimizado para móvil */
-        .header { background: white; padding: 12px 10px; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 100 }
-        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap }
+        /* ✅ Header optimizado */
+        .header { background: white; padding: 14px 12px; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 100 }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap }
         
-        /* ✅ Logo más grande y destacado */
+        /* ✅ Logo EXTRA GRANDE y destacado */
         .logo { 
-            font-size: 22px; 
-            font-weight: 700; 
+            font-size: 26px; 
+            font-weight: 800; 
             color: #333; 
             text-align: center; 
             flex: 1; 
@@ -28,17 +28,18 @@
             word-wrap: break-word; 
             white-space: normal; 
             line-height: 1.4;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 0.5px;
         }
         
-        .nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center }
-        .btn { padding: 8px 12px; border: none; border-radius: 6px; text-decoration: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center }
+        .btn { padding: 9px 14px; border: none; border-radius: 6px; text-decoration: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-size: 14px; white-space: nowrap }
         .btn-cart { background: #25D366; color: white }
         .btn-admin { background: #667eea; color: white }
         
         .main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 15px; width: 100% }
-        h1 { color: white; text-align: center; margin-bottom: 20px; font-size: 20px }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px }
+        h1 { color: white; text-align: center; margin-bottom: 20px; font-size: 22px }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px }
         .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1) }
         .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover }
         .card-body { padding: 10px }
@@ -76,18 +77,19 @@
         
         /* ✅ Media Queries para móvil */
         @@media (max-width: 480px) {
-            .header { padding: 10px 8px }
-            .header-content { flex-direction: column; gap: 10px; text-align: center }
-            /* ✅ Logo más grande en móvil también */
+            .header { padding: 12px 10px }
+            .header-content { flex-direction: column; gap: 12px; text-align: center }
+            /* ✅ Logo EXTRA GRANDE en móvil */
             .logo { 
-                font-size: 20px; 
-                font-weight: 700;
+                font-size: 24px; 
+                font-weight: 800;
                 width: 100%;
                 line-height: 1.3;
+                letter-spacing: 0.3px;
             }
             .nav { width: 100%; justify-content: center }
-            .btn { padding: 7px 14px; font-size: 12px }
-            h1 { font-size: 18px }
+            .btn { padding: 8px 15px; font-size: 13px }
+            h1 { font-size: 19px }
             .grid { grid-template-columns: repeat(2, 1fr); gap: 10px }
             .card-body { padding: 8px }
             .name { font-size: 12px }
@@ -102,18 +104,18 @@
         
         @@media (min-width: 481px) and (max-width: 768px) {
             .header-content { flex-wrap: wrap }
-            .logo { font-size: 21px; flex: none }
-            .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px }
+            .logo { font-size: 25px; flex: none }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 14px }
         }
         
         @@media (min-width: 769px) {
             .header-content { flex-wrap: nowrap }
-            .logo { font-size: 24px; text-align: left }
-            .grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px }
+            .logo { font-size: 28px; text-align: left }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 18px }
         }
         
-        @@media (min-width: 480px) { .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) } }
-        @@media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) } }
+        @@media (min-width: 480px) { .grid { grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)) } }
+        @@media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)) } }
     </style>
 </head>
 <body>
