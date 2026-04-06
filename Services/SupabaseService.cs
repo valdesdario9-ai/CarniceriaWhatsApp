@@ -93,29 +93,50 @@ namespace CarniceriaWhatsApp.Services
             }
         }
         
-        public async Task<Producto> ActualizarProductoAsync(int id, Producto producto)
+       public async Task<Producto> ActualizarProductoAsync(int id, Producto producto)
+{
+    try
+    {
+        // Crear un objeto solo con los campos a actualizar (sin id)
+        var updateData = new
         {
-            try
-            {
-                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-                var json = JsonSerializer.Serialize(producto, options);
-                
-                if (producto.Id == 0)
-                {
-                    json = Regex.Replace(json, @"""id"":\s*0,?", "").Trim();
-                    if (json.StartsWith("{,")) json = "{" + json.Substring(2);
-                }
-                
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PatchAsync($"/rest/v1/productos_carniceria?id=eq.{id}&select=*", content);
-                
-                if (!response.IsSuccessStatusCode) return producto;
-                
-                var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
-                return result?.Count > 0 ? result[0] : producto;
-            }
-            catch { return producto; }
+            nombre = producto.Nombre,
+            precio_por_kilo = producto.PrecioPorKilo,
+            imagen_url = producto.ImagenUrl,
+            categoria = producto.Categoria,
+            activo = producto.Activo
+        };
+        
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        
+        var json = JsonSerializer.Serialize(updateData, options);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        
+        // Usar PATCH con filtro por id y solicitar el resultado actualizado
+        var url = $"/rest/v1/productos_carniceria?id=eq.{id}&select=*";
+        var response = await _httpClient.PatchAsync(url, content);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"[UPDATE ERROR] {response.StatusCode}: {error}");
+            return null;
         }
+        
+        // Leer el resultado actualizado
+        var result = await response.Content.ReadFromJsonAsync<List<Producto>>();
+        return result?.Count > 0 ? result[0] : null;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[UPDATE EXCEPTION] {ex.Message}");
+        return null;
+    }
+}
         
         public async Task<bool> EliminarProductoAsync(int id)
         {
