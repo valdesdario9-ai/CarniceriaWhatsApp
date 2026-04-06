@@ -81,17 +81,17 @@
                         <small>Precio en pesos argentinos ($) por kilogramo</small>
                     </div>
                     
-                  <div class="form-group">
-    <label for="Categoria">🏷️ Categoría:</label>
-    <select id="Categoria" name="Producto.Categoria">
-        <option value="">Seleccionar...</option>
-        <option value="Vacuna" selected="@(Model.Producto?.Categoria == "Vacuna" ? "selected" : null)">🐄 Carne Vacuna</option>
-        <option value="Porcina" selected="@(Model.Producto?.Categoria == "Porcina" ? "selected" : null)">🐖 Carne Porcina</option>
-        <option value="Aves" selected="@(Model.Producto?.Categoria == "Aves" ? "selected" : null)">🐔 Aves</option>
-        <option value="Fiambres" selected="@(Model.Producto?.Categoria == "Fiambres" ? "selected" : null)">🥓 Fiambres</option>
-        <option value="Otros" selected="@(Model.Producto?.Categoria == "Otros" ? "selected" : null)">📦 Otros</option>
-    </select>
-</div>
+                    <div class="form-group">
+                        <label for="Categoria">🏷️ Categoría:</label>
+                        <select id="Categoria" name="Producto.Categoria">
+                            <option value="">Seleccionar...</option>
+                            <option value="Vacuna" selected="@(Model.Producto?.Categoria == "Vacuna" ? "selected" : null)">🐄 Carne Vacuna</option>
+                            <option value="Porcina" selected="@(Model.Producto?.Categoria == "Porcina" ? "selected" : null)">🐖 Carne Porcina</option>
+                            <option value="Aves" selected="@(Model.Producto?.Categoria == "Aves" ? "selected" : null)">🐔 Aves</option>
+                            <option value="Fiambres" selected="@(Model.Producto?.Categoria == "Fiambres" ? "selected" : null)">🥓 Fiambres</option>
+                            <option value="Otros" selected="@(Model.Producto?.Categoria == "Otros" ? "selected" : null)">📦 Otros</option>
+                        </select>
+                    </div>
                     
                     <div class="form-group">
                         <label>🖼️ Imagen Actual:</label>
