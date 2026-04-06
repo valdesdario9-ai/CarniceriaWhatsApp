@@ -1,98 +1,31 @@
-@page "/Admin/Configuracion"
-@model CarniceriaWhatsApp.Pages.Admin.ConfiguracionModel
-@{
-    ViewData["Title"] = "Configuración";
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Threading.Tasks;
+using CarniceriaWhatsApp.Models;
+using CarniceriaWhatsApp.Services;
+
+namespace CarniceriaWhatsApp.Pages.Admin
+{
+    public class ConfiguracionModel : PageModel
+    {
+        private readonly ISupabaseService _supabase;
+        public ConfiguracionModel(ISupabaseService supabase) => _supabase = supabase;
+        
+        [BindProperty] public ConfiguracionCarniceria Config { get; set; }
+        public string Message { get; set; } = "";
+        
+        public async Task<IActionResult> OnGetAsync()
+        {
+            Config = await _supabase.ObtenerConfiguracionAsync();
+            return Page();
+        }
+        
+        public async Task<IActionResult> OnPostAsync()
+        {
+            await _supabase.ActualizarConfiguracionAsync(Config);
+            Message = "✅ Configuración guardada correctamente";
+            Config = await _supabase.ObtenerConfiguracionAsync();
+            return Page();
+        }
+    }
 }
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>@ViewData["Title"]</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.main{max-width:800px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.form{background:white;padding:30px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input,textarea{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus,textarea:focus{outline:none;border-color:#667eea}.btn{padding:14px 20px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn-primary{background:#667eea;color:white}.section{margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #eee}h2{color:#333;margin-bottom:15px;font-size:18px}.alert{padding:12px;border-radius:8px;margin-bottom:20px}.alert-success{background:#d4edda;color:#155724}
-    </style>
-</head>
-<body>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">🥩 Admin</div>
-            <nav class="nav">
-                <a href="/">🏪 Tienda</a>
-                <a href="/Admin/Productos">📦 Productos</a>
-            </nav>
-        </div>
-    </header>
-    <main class="main">
-        <h1>⚙️ Configuración de la Tienda</h1>
-        <div class="form">
-            @if(!string.IsNullOrEmpty(Model.Message)){<div class="alert alert-success">@Model.Message</div>}
-            <form method="post">
-                <input type="hidden" name="Config.Id" value="@(Model.Config?.Id??0)" />
-                
-                <div class="section">
-                    <h2>📋 Información Básica</h2>
-                    <div class="form-group">
-                        <label>🏪 Nombre de la Tienda</label>
-                        <input type="text" name="Config.NombreTienda" required value="@(Model.Config?.NombreTienda??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>📝 Descripción</label>
-                        <textarea name="Config.Descripcion" rows="3">@(Model.Config?.Descripcion??"")</textarea>
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2>📞 Contacto</h2>
-                    <div class="form-group">
-                        <label>📱 WhatsApp</label>
-                        <input type="text" name="Config.Whatsapp" value="@(Model.Config?.Whatsapp??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>📞 Teléfono</label>
-                        <input type="text" name="Config.Telefono" value="@(Model.Config?.Telefono??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>✉️ Email</label>
-                        <input type="email" name="Config.Email" value="@(Model.Config?.Email??"")" />
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2>📍 Ubicación</h2>
-                    <div class="form-group">
-                        <label>🏠 Dirección</label>
-                        <input type="text" name="Config.Direccion" value="@(Model.Config?.Direccion??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>🏙️ Ciudad</label>
-                        <input type="text" name="Config.Ciudad" value="@(Model.Config?.Ciudad??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>🗺️ Provincia</label>
-                        <input type="text" name="Config.Provincia" value="@(Model.Config?.Provincia??"")" />
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2>💳 Pago</h2>
-                    <div class="form-group">
-                        <label>🟡 Alias Mercado Pago</label>
-                        <input type="text" name="Config.AliasMercadoPago" value="@(Model.Config?.AliasMercadoPago??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>🏦 CBU/CVU</label>
-                        <input type="text" name="Config.Cbu" value="@(Model.Config?.Cbu??"")" />
-                    </div>
-                    <div class="form-group">
-                        <label>📋 Instrucciones de Pago</label>
-                        <textarea name="Config.InstruccionesPago" rows="3">@(Model.Config?.InstruccionesPago??"")</textarea>
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">💾 Guardar Configuración</button>
-            </form>
-        </div>
-    </main>
-</body>
-</html>
