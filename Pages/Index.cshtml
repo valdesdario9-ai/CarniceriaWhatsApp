@@ -11,7 +11,7 @@
     <title>@ViewData["Title"]</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box }
-        body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh }
+        body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh; display: flex; flex-direction: column }
         .header { background: white; padding: 15px; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1) }
         .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center }
         .logo { font-size: 20px; font-weight: bold; color: #333 }
@@ -19,7 +19,7 @@
         .btn { padding: 10px 16px; border: none; border-radius: 8px; text-decoration: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px }
         .btn-cart { background: #25D366; color: white }
         .btn-admin { background: #667eea; color: white }
-        .main { max-width: 1200px; margin: 0 auto; padding: 15px }
+        .main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 15px; width: 100% }
         h1 { color: white; text-align: center; margin-bottom: 20px }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px }
         .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1) }
@@ -45,6 +45,21 @@
         .btn-checkout { width: 100%; padding: 12px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px }
         @@media (min-width: 480px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) } }
         @@media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) } }
+        
+        /* ✅ Footer profesional */
+        .footer { background: #1a1a2e; color: #aaa; padding: 25px 15px; margin-top: auto; text-align: center; font-size: 13px; line-height: 1.6 }
+        .footer-content { max-width: 1200px; margin: 0 auto }
+        .footer-developer { color: #667eea; font-weight: 600; text-decoration: none }
+        .footer-developer:hover { color: #764ba2 }
+        .footer-contact { margin: 10px 0 }
+        .footer-contact a { color: #25D366; text-decoration: none; margin: 0 8px }
+        .footer-contact a:hover { text-decoration: underline }
+        .footer-version { color: #666; font-size: 12px; margin-top: 8px }
+        .footer-flag { margin-right: 4px }
+        @@media (max-width: 480px) {
+            .footer { font-size: 12px; padding: 20px 10px }
+            .footer-contact a { display: block; margin: 4px 0 }
+        }
     </style>
 </head>
 <body>
@@ -126,6 +141,25 @@
             <button class="btn-checkout" onclick="enviarWhatsApp()">📲 Enviar Pedido</button>
         </div>
     </div>
+    
+    <!-- ✅ Footer profesional -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div>
+                Desarrollado por 
+                <a href="mailto:dariovaldes@hotmail.com" class="footer-developer">Darío Ricardo Valdés</a> 
+                - Analista de Sistemas
+            </div>
+            <div class="footer-contact">
+                <a href="https://wa.me/5492317401729" target="_blank" rel="noopener">📱 +54 9 2317 401729</a>
+                <a href="mailto:dariovaldes@hotmail.com">✉️ dariovaldes@hotmail.com</a>
+            </div>
+            <div class="footer-version">
+                <span class="footer-flag">🇦🇷</span> Argentina | 
+                Sistema para Ventas por WhatsApp | Versión 1.0
+            </div>
+        </div>
+    </footer>
     
     <script>
         const tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
