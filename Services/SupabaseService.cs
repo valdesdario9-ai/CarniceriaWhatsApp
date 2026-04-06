@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using CarniceriaWhatsApp.Models;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 
 namespace CarniceriaWhatsApp.Services
 {
@@ -15,7 +16,7 @@ namespace CarniceriaWhatsApp.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _supabaseUrl;
-        private readonly string _supabaseKey;
+        private readonly string? _supabaseKey;
         
         public SupabaseService(HttpClient httpClient)
         {
@@ -43,7 +44,7 @@ namespace CarniceriaWhatsApp.Services
             catch { return new List<Producto>(); }
         }
         
-        public async Task<Producto> ObtenerProductoAsync(int id)
+        public async Task<Producto?> ObtenerProductoAsync(int id)
         {
             try
             {
@@ -82,7 +83,7 @@ namespace CarniceriaWhatsApp.Services
             catch { return producto; }
         }
         
-        public async Task<Producto> ActualizarProductoAsync(int id, Producto producto)
+        public async Task<Producto?> ActualizarProductoAsync(int id, Producto producto)
         {
             try
             {
@@ -97,8 +98,7 @@ namespace CarniceriaWhatsApp.Services
                 
                 var options = new JsonSerializerOptions 
                 { 
-                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower 
                 };
                 
                 var json = JsonSerializer.Serialize(updateData, options);
