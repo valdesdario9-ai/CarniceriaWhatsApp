@@ -7,100 +7,49 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#667eea" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>@ViewData["Title"] - Admin</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; flex-direction: column }
-        .header { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 15px }
-        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px }
-        .logo { font-size: 20px; font-weight: bold; color: #333; text-decoration: none }
-        .nav-links { display: flex; gap: 10px; flex-wrap: wrap }
-        .btn { padding: 10px 16px; border: none; cursor: pointer; border-radius: 8px; text-decoration: none; display: inline-block; font-size: 14px; font-weight: 600 }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white }
-        .btn-success { background: #28a745; color: white }
-        .btn-danger { background: #dc3545; color: white }
-        .main-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 20px; width: 100% }
-        .page-title { font-size: 22px; margin-bottom: 20px; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px }
-        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px }
-        .product-card { background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column }
-        .product-image { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #f8f9fa }
-        .product-info { padding: 15px; flex: 1; display: flex; flex-direction: column }
-        .product-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 6px }
-        .product-price { font-size: 18px; color: #28a745; font-weight: 700; margin-bottom: 8px }
-        .product-status { font-size: 11px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 10px }
-        .status-active { background: #d4edda; color: #155724 }
-        .status-inactive { background: #f8d7da; color: #721c24 }
-        .product-actions { margin-top: auto; display: flex; gap: 10px }
-        .product-actions .btn { flex: 1; text-align: center; padding: 10px; font-size: 13px }
-        .empty-state { text-align: center; padding: 40px; background: white; border-radius: 12px }
-        .footer { background: #333; color: white; padding: 20px; text-align: center; margin-top: auto }
-        @@media(max-width: 768px) {
-            .header-content { flex-direction: column; align-items: stretch }
-            .nav-links { justify-content: center }
-            .page-title { flex-direction: column; text-align: center }
-            .products-grid { grid-template-columns: 1fr }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.main{max-width:1200px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.btn{padding:10px 16px;border:none;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;cursor:pointer}.btn-primary{background:#667eea;color:white}.btn-success{background:#28a745;color:white}.btn-danger{background:#dc3545;color:white}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.card img{width:100%;aspect-ratio:1/1;object-fit:cover}.card-body{padding:15px}.name{font-size:16px;font-weight:600;color:#333;margin-bottom:4px}.price{font-size:18px;color:#28a745;font-weight:700;margin-bottom:10px}.actions{display:flex;gap:10px}.actions .btn{flex:1;text-align:center}
     </style>
 </head>
 <body>
     <header class="header">
         <div class="header-content">
-            <a href="/" class="logo">🥩 Admin</a>
-            <nav class="nav-links">
-                <a href="/" class="btn btn-primary">🏪 Tienda</a>
-                <a href="/Admin/Nuevo" class="btn btn-success">➕ Nuevo</a>
-                <a href="/Admin/Configuracion" class="btn btn-primary">⚙️ Config</a>
+            <div class="logo">🥩 Admin Panel</div>
+            <nav class="nav">
+                <a href="/">🏪 Tienda</a>
+                <a href="/Admin/Productos">📦 Productos</a>
+                <a href="/Admin/Configuracion">⚙️ Config</a>
+                <a href="/Admin/Logout">🚪 Salir</a>
             </nav>
         </div>
     </header>
-    
-    <main class="main-content">
-        <h1 class="page-title">
-            📦 Productos
-            <a href="/Admin/Nuevo" class="btn btn-success">➕ Agregar</a>
-        </h1>
-        
-        @if (Model.Productos == null || Model.Productos.Count == 0)
-        {
-            <div class="empty-state">
-                <h2>📭 No hay productos</h2>
-                <p style="margin: 15px 0; color: #666">Comenzá agregando tu primer producto</p>
-                <a href="/Admin/Nuevo" class="btn btn-primary">➕ Nuevo Producto</a>
-            </div>
-        }
-        else
-        {
-            <div class="products-grid">
-                @foreach (var producto in Model.Productos)
-                {
-                    <div class="product-card">
-                        <img src="@(string.IsNullOrEmpty(producto.ImagenUrl) ? "https://via.placeholder.com/300" : producto.ImagenUrl)" 
-                             alt="@producto.Nombre" 
-                             class="product-image"
-                             onerror="this.src='https://via.placeholder.com/300'" />
-                        <div class="product-info">
-                            <h3 class="product-name">@producto.Nombre</h3>
-                            <p class="product-price">$@producto.PrecioPorKilo.ToString("F2") / kg</p>
-                            <span class="product-status @(producto.Activo ? "status-active" : "status-inactive")">
-                                @(producto.Activo ? "✅ Activo" : "❌ Inactivo")
-                            </span>
-                            <div class="product-actions">
-                                <a href="/Admin/Editar?id=@producto.Id" class="btn btn-primary">✏️ Editar</a>
-                                <form method="post" asp-page-handler="Delete" asp-route-id="@producto.Id" style="flex:1" onsubmit="return confirm('¿Eliminar este producto?');">
-                                    <button type="submit" class="btn btn-danger" style="width:100%">🗑️</button>
-                                </form>
+    <main class="main">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <h1>📦 Productos</h1>
+            <a href="/Admin/Nuevo" class="btn btn-success">➕ Nuevo Producto</a>
+        </div>
+        @if(Model.Productos?.Any()==true){
+            <div class="grid">
+                @foreach(var p in Model.Productos){
+                    <div class="card">
+                        <img src="@(p.ImagenUrl??"https://via.placeholder.com/300")" alt="@p.Nombre" onerror="this.src='https://via.placeholder.com/300'">
+                        <div class="card-body">
+                            <div class="name">@p.Nombre</div>
+                            <div class="price">$@p.PrecioPorKilo.ToString("F2")/kg</div>
+                            <div style="color:#666;font-size:14px;margin-bottom:10px">@(p.Activo?"✅ Activo":"❌ Inactivo")</div>
+                            <div class="actions">
+                                <a href="/Admin/Editar?id=@p.Id" class="btn btn-primary">✏️ Editar</a>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@p.Id" style="flex:1" onsubmit="return confirm('¿Eliminar?')"><button type="submit" class="btn btn-danger" style="width:100%">🗑️</button></form>
                             </div>
                         </div>
                     </div>
                 }
             </div>
+        }else{
+            <p style="text-align:center;color:#666;padding:40px">📭 No hay productos. <a href="/Admin/Nuevo" style="color:#667eea">Agregar primero</a></p>
         }
     </main>
-    
-    <footer class="footer">
-        <p>&copy; @DateTime.Now.Year - Carnicería WhatsApp Admin</p>
-    </footer>
 </body>
 </html>
