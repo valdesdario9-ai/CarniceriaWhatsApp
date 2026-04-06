@@ -1,1 +1,754 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = Model.Config?.NombreTienda ?? "Carnicería WhatsApp";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        /* ✅ RESET & BASE - Mobile First */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        /* ✅ HEADER - Sticky para móvil */
+        .header { 
+            background: white; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            padding: 12px 15px; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100;
+        }
+        .header-content { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 10px;
+        }
+        .logo { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #333; 
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .nav-links { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .nav-links a { 
+            text-decoration: none; 
+            color: #666; 
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        /* ✅ BOTONES - Touch-friendly */
+        .btn { 
+            padding: 10px 16px; 
+            border: none; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 14px; 
+            font-weight: 600;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        .btn:active { transform: scale(0.95) }
+        .btn-cart { 
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); 
+            color: white;
+            position: relative;
+        }
+        .cart-count { 
+            position: absolute; 
+            top: -6px; 
+            right: -6px; 
+            background: #dc3545; 
+            color: white; 
+            border-radius: 50%; 
+            min-width: 18px; 
+            height: 18px; 
+            font-size: 11px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        /* ✅ CONTENIDO PRINCIPAL */
+        .main-content { 
+            flex: 1; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 15px; 
+            width: 100%;
+        }
+        .page-title { 
+            font-size: 22px; 
+            margin-bottom: 15px; 
+            color: white; 
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        /* ✅ GRID DE PRODUCTOS - Responsive */
+        .products-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            gap: 15px;
+        }
+        @@media(min-width: 480px) {
+            .products-grid { 
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+                gap: 20px;
+            }
+        }
+        @@media(min-width: 768px) {
+            .products-grid { 
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+                gap: 25px;
+            }
+        }
+        
+        /* ✅ TARJETA DE PRODUCTO */
+        .product-card { 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            transition: transform 0.2s;
+        }
+        .product-card:active { transform: scale(0.98) }
+        .product-image { 
+            width: 100%; 
+            aspect-ratio: 1/1;
+            object-fit: cover; 
+            background: #f8f9fa;
+        }
+        .product-info { 
+            padding: 12px; 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column;
+        }
+        .product-name { 
+            font-size: 15px; 
+            font-weight: 600; 
+            color: #333; 
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .product-price { 
+            font-size: 18px; 
+            color: #28a745; 
+            font-weight: 700; 
+            margin-bottom: 8px;
+        }
+        .product-status { 
+            font-size: 11px; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            display: inline-block; 
+            margin-bottom: 10px;
+            background: #d4edda; 
+            color: #155724;
+            font-weight: 500;
+        }
+        
+        /* ✅ INPUT DE CANTIDAD - Touch-friendly */
+        .quantity-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 8px;
+            -webkit-appearance: none;
+        }
+        .quantity-input:focus {
+            outline: none;
+            border-color: #25D366;
+        }
+        
+        /* ✅ BOTÓN AGREGAR */
+        .btn-add-cart { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white;
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+        }
+        
+        /* ✅ MODAL - Full screen en móvil */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            align-items: flex-end;
+            justify-content: center;
+        }
+        @@media(min-width: 768px) {
+            .modal { align-items: center }
+        }
+        .modal.show { display: flex }
+        .modal-content { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 20px 20px 0 0; 
+            width: 100%; 
+            max-width: 600px;
+            max-height: 85vh; 
+            overflow-y: auto;
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.3);
+        }
+        @@media(min-width: 768px) {
+            .modal-content { 
+                border-radius: 15px;
+                max-height: 90vh;
+            }
+        }
+        .modal-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid #eee;
+        }
+        .modal-title { 
+            font-size: 18px; 
+            font-weight: 700; 
+            color: #333;
+        }
+        .modal-close { 
+            background: none; 
+            border: none; 
+            font-size: 28px; 
+            cursor: pointer; 
+            color: #666;
+            padding: 5px;
+            line-height: 1;
+        }
+        
+        /* ✅ ITEMS DEL CARRITO */
+        .cart-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px 0; 
+            border-bottom: 1px solid #eee;
+        }
+        .cart-item-info { flex: 1 }
+        .cart-item-name { 
+            font-weight: 600; 
+            color: #333;
+            font-size: 14px;
+        }
+        .cart-item-price { 
+            color: #28a745; 
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .cart-item-remove { 
+            color: #dc3545; 
+            background: #fee; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-total { 
+            font-size: 20px; 
+            font-weight: 700; 
+            text-align: right; 
+            margin: 20px 0; 
+            padding-top: 15px; 
+            border-top: 2px solid #eee;
+            color: #333;
+        }
+        .cart-actions { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 20px;
+        }
+        .cart-actions .btn { flex: 1; padding: 14px }
+        .btn-clear { background: #6c757d; color: white }
+        .btn-checkout { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white }
+        
+        /* ✅ FORMULARIO DE DATOS */
+        .modal-form .form-group { margin-bottom: 15px }
+        .modal-form label { 
+            display: block; 
+            margin-bottom: 6px; 
+            font-weight: 600; 
+            color: #333; 
+            font-size: 14px;
+        }
+        .modal-form input, 
+        .modal-form textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px;
+            font-family: inherit;
+        }
+        .modal-form input:focus, 
+        .modal-form textarea:focus { 
+            outline: none; 
+            border-color: #25D366;
+        }
+        .modal-form small { 
+            color: #666; 
+            font-size: 12px; 
+            display: block; 
+            margin-top: 4px;
+        }
+        .modal-footer { 
+            margin-top: 20px; 
+            display: flex; 
+            gap: 10px;
+        }
+        .modal-footer .btn { flex: 1; padding: 14px; font-size: 15px }
+        .btn-cancel { background: #6c757d; color: white }
+        .btn-confirm { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white }
+        
+        /* ✅ FOOTER */
+        .footer { 
+            background: #333; 
+            color: white; 
+            padding: 20px 15px; 
+            margin-top: auto;
+            text-align: center;
+        }
+        .footer-content { 
+            max-width: 1200px; 
+            margin: 0 auto;
+        }
+        .footer a { color: #25D366; text-decoration: none }
+        
+        /* ✅ EMPTY STATE */
+        .empty-state { 
+            text-align: center; 
+            padding: 40px 20px; 
+            background: white; 
+            border-radius: 12px;
+        }
+        .empty-state h2 { 
+            font-size: 20px; 
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .empty-state p { 
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* ✅ UTILIDADES */
+        .text-center { text-align: center }
+        .text-muted { color: #666 }
+        .mt-2 { margin-top: 10px }
+        .mb-2 { margin-bottom: 10px }
+        
+        /* ✅ MEDIA QUERIES */
+        @@media(max-width: 360px) {
+            .logo { font-size: 18px }
+            .page-title { font-size: 18px }
+            .product-name { font-size: 14px }
+            .product-price { font-size: 16px }
+        }
+    </style>
+</head>
+<body>
+    <!-- ✅ HEADER -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">🥩 @(Model.Config?.NombreTienda ?? "Carnicería")</a>
+            <nav class="nav-links">
+                <button class="btn btn-cart" onclick="abrirCarrito()">
+                    🛒 <span style="display:none">@media(min-width: 480px){Carrito}</span>
+                    <span id="cartCount" class="cart-count">0</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- ✅ CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+        <h1 class="page-title">🥩 @(Model.Config?.NombreTienda ?? "Carnicería")</h1>
+        
+        @if (Model.Productos == null || Model.Productos.Count == 0)
+        {
+            <div class="empty-state">
+                <h2>📭 No hay productos disponibles</h2>
+                <p class="mt-2">Pronto vamos a tener cortes frescos para vos</p>
+            </div>
+        }
+        else
+        {
+            <div class="products-grid">
+                @foreach (var producto in Model.Productos)
+                {
+                    @if (producto.Activo)
+                    {
+                        <div class="product-card">
+                            <img src="@(string.IsNullOrEmpty(producto.ImagenUrl) ? "https://via.placeholder.com/300" : producto.ImagenUrl)" 
+                                 alt="@producto.Nombre" 
+                                 class="product-image"
+                                 onerror="this.src='https://via.placeholder.com/300'"
+                                 loading="lazy" />
+                            <div class="product-info">
+                                <h3 class="product-name">@producto.Nombre</h3>
+                                <p class="product-price">$@producto.PrecioPorKilo.ToString("F2") / kg</p>
+                                <span class="product-status">✅ Fresco</span>
+                                
+                                <!-- ✅ INPUT PARA KG - Grande para touch -->
+                                <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Cantidad (kg):</label>
+                                <input type="number" 
+                                       id="cantidad-@producto.Id" 
+                                       class="quantity-input"
+                                       min="0.5" 
+                                       step="0.5" 
+                                       value="1" 
+                                       placeholder="Ej: 1.5" />
+                                
+                                <button type="button" 
+                                        class="btn btn-add-cart" 
+                                        onclick="agregarAlCarrito(@producto.Id, '@producto.Nombre', @producto.PrecioPorKilo)">
+                                    🛒 Agregar
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </main>
+    
+    <!-- ✅ MODAL DEL CARRITO -->
+    <div id="modalCarrito" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🛒 Tu Pedido</h3>
+                <button class="modal-close" onclick="cerrarCarrito()">&times;</button>
+            </div>
+            <div id="cartItems"></div>
+            <div class="cart-total">Total Aprox: $<span id="cartTotal">0.00</span></div>
+            <div class="text-muted" style="font-size:12px;margin-bottom:15px">
+                ⚠️ El precio final se confirma al preparar el pedido
+            </div>
+            <div class="cart-actions">
+                <button type="button" class="btn btn-clear" onclick="limpiarCarrito()">🗑️ Vaciar</button>
+                <button type="button" class="btn btn-checkout" onclick="finalizarCompra()">✅ Finalizar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ✅ MODAL DE DATOS DEL COMPRADOR -->
+    <div id="modalDatos" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📋 Tus Datos</h3>
+                <button class="modal-close" onclick="cerrarModalDatos()">&times;</button>
+            </div>
+            <form class="modal-form" id="formCompra" onsubmit="enviarWhatsApp(event)">
+                <div class="form-group">
+                    <label for="compradorNombre">👤 Nombre y Apellido *</label>
+                    <input type="text" 
+                           id="compradorNombre" 
+                           name="compradorNombre" 
+                           required 
+                           placeholder="Ej: Juan Pérez" 
+                           autocomplete="name" />
+                </div>
+                <div class="form-group">
+                    <label for="compradorTelefono">📱 Tu Teléfono *</label>
+                    <input type="tel" 
+                           id="compradorTelefono" 
+                           name="compradorTelefono" 
+                           required 
+                           placeholder="Ej: 2317401729" 
+                           autocomplete="tel"
+                           inputmode="tel" />
+                    <small>Para coordinar la entrega</small>
+                </div>
+                <div class="form-group">
+                    <label for="compradorDireccion">📍 Dirección *</label>
+                    <input type="text" 
+                           id="compradorDireccion" 
+                           name="compradorDireccion" 
+                           required 
+                           placeholder="Ej: Calle 123, Ciudad" 
+                           autocomplete="street-address" />
+                </div>
+                <div class="form-group">
+                    <label for="compradorNotas">📝 Notas (opcional)</label>
+                    <textarea id="compradorNotas" 
+                              name="compradorNotas" 
+                              rows="2" 
+                              placeholder="Ej: Cortar fino, sin grasa"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel" onclick="cerrarModalDatos()">Cancelar</button>
+                    <button type="submit" class="btn btn-confirm">✅ Enviar Pedido</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- ✅ FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; @DateTime.Now.Year - @(Model.Config?.NombreTienda ?? "Carnicería")</p>
+            <p class="mt-2" style="font-size:13px;color:#aaa">
+                📞 @(Model.Config?.Telefono ?? "Contactar") | 
+                📍 @(Model.Config?.Direccion ?? "Dirección")
+            </p>
+        </div>
+    </footer>
+    
+    <!-- ✅ JAVASCRIPT -->
+    <script>
+        // ✅ Funciones del carrito
+        function getCarrito() {
+            return JSON.parse(localStorage.getItem('carrito') || '[]');
+        }
+        
+        function guardarCarrito(carrito) {
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+            actualizarContador();
+        }
+        
+        function actualizarContador() {
+            const carrito = getCarrito();
+            const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+            const countEl = document.getElementById('cartCount');
+            countEl.textContent = totalItems;
+            countEl.style.display = totalItems > 0 ? 'flex' : 'none';
+        }
+        
+        function agregarAlCarrito(id, nombre, precioPorKilo) {
+            const cantidadInput = document.getElementById(`cantidad-${id}`);
+            const cantidad = parseFloat(cantidadInput.value) || 1;
+            
+            let carrito = getCarrito();
+            const existente = carrito.find(item => item.id === id);
+            
+            if (existente) {
+                existente.cantidad += cantidad;
+            } else {
+                carrito.push({ 
+                    id, 
+                    nombre, 
+                    precioPorKilo, 
+                    cantidad,
+                    precioFinal: null
+                });
+            }
+            
+            guardarCarrito(carrito);
+            
+            // ✅ Feedback visual con vibración en móvil
+            if (navigator.vibrate) navigator.vibrate(50);
+            
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ Agregado';
+            btn.style.background = '#28a745';
+            setTimeout(() => {
+                btn.innerHTML = '🛒 Agregar';
+                btn.style.background = '';
+            }, 1000);
+        }
+        
+        function abrirCarrito() {
+            const carrito = getCarrito();
+            const cartItems = document.getElementById('cartItems');
+            const cartTotal = document.getElementById('cartTotal');
+            
+            if (carrito.length === 0) {
+                cartItems.innerHTML = '<p class="text-center text-muted" style="padding:30px">🛒 Tu carrito está vacío</p>';
+                cartTotal.textContent = '0.00';
+            } else {
+                let html = '';
+                let total = 0;
+                
+                carrito.forEach((item, index) => {
+                    const estimado = item.precioPorKilo * item.cantidad;
+                    total += estimado;
+                    html += `
+                        <div class="cart-item">
+                            <div class="cart-item-info">
+                                <div class="cart-item-name">${item.nombre}</div>
+                                <div class="cart-item-price">$${item.precioPorKilo.toFixed(2)}/kg x ${item.cantidad}kg = $${estimado.toFixed(2)}</div>
+                            </div>
+                            <button class="cart-item-remove" onclick="eliminarDelCarrito(${index})">&times;</button>
+                        </div>
+                    `;
+                });
+                
+                cartItems.innerHTML = html;
+                cartTotal.textContent = total.toFixed(2);
+            }
+            
+            document.getElementById('modalCarrito').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function cerrarCarrito() {
+            document.getElementById('modalCarrito').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        
+        function eliminarDelCarrito(index) {
+            if (navigator.vibrate) navigator.vibrate(30);
+            let carrito = getCarrito();
+            carrito.splice(index, 1);
+            guardarCarrito(carrito);
+            abrirCarrito();
+        }
+        
+        function limpiarCarrito() {
+            if (confirm('¿Vaciar todo el carrito?')) {
+                localStorage.removeItem('carrito');
+                actualizarContador();
+                abrirCarrito();
+            }
+        }
+        
+        function finalizarCompra() {
+            const carrito = getCarrito();
+            if (carrito.length === 0) {
+                alert('Tu carrito está vacío');
+                return;
+            }
+            cerrarCarrito();
+            document.getElementById('modalDatos').classList.add('show');
+            document.getElementById('compradorNombre').focus();
+        }
+        
+        function cerrarModalDatos() {
+            document.getElementById('modalDatos').classList.remove('show');
+            document.getElementById('formCompra').reset();
+            document.body.style.overflow = '';
+        }
+        
+        // ✅ Cerrar modales al hacer clic fuera
+        document.getElementById('modalCarrito').addEventListener('click', function(e) {
+            if (e.target === this) cerrarCarrito();
+        });
+        document.getElementById('modalDatos').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModalDatos();
+        });
+        
+        // ✅ Generar mensaje WhatsApp
+        function enviarWhatsApp(e) {
+            e.preventDefault();
+            
+            const carrito = getCarrito();
+            if (carrito.length === 0) {
+                alert('Tu carrito está vacío');
+                return;
+            }
+            
+            const nombre = document.getElementById('compradorNombre').value.trim();
+            const telefono = document.getElementById('compradorTelefono').value.trim();
+            const direccion = document.getElementById('compradorDireccion').value.trim();
+            const notas = document.getElementById('compradorNotas').value.trim();
+            
+            const tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
+            const whatsappTienda = '@(Model.Config?.Whatsapp ?? "5492317401729")';
+            const aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
+            const cbu = '@(Model.Config?.Cbu ?? "")';
+            
+            let mensaje = `🥩 *PEDIDO - ${tienda}*
 
+📦 *Productos solicitados:*
+`;
+            let total = 0;
+            carrito.forEach(item => {
+                const estimado = item.precioPorKilo * item.cantidad;
+                total += estimado;
+                mensaje += `• ${item.nombre} - ${item.cantidad}kg (aprox $${estimado.toFixed(2)})\n`;
+            });
+            
+            mensaje += `
+💰 *Total Aproximado: $${total.toFixed(2)}*
+
+⚠️ *IMPORTANTE:*
+El precio final se confirma al preparar el pedido, ya que el peso puede variar ligeramente al cortar.
+
+👤 *Datos del cliente:*
+• Nombre: ${nombre}
+• Teléfono: ${telefono}
+• Dirección: ${direccion}
+${notas ? `• Notas: ${notas}` : ''}
+
+💳 *Pago:* Al recibir el pedido
+
+📞 *Próximos pasos:*
+1. Te confirmamos el peso exacto y precio final
+2. Coordinamos horario de entrega/retiro
+3. Abonás al recibir
+
+¡Gracias por tu compra! 🥩`;
+            
+            const mensajeCodificado = encodeURIComponent(mensaje);
+            const urlWhatsApp = `https://wa.me/${whatsappTienda}?text=${mensajeCodificado}`;
+            window.open(urlWhatsApp, '_blank', 'noopener,noreferrer');
+            
+            localStorage.removeItem('carrito');
+            actualizarContador();
+            cerrarModalDatos();
+        }
+        
+        // ✅ Inicializar al cargar
+        document.addEventListener('DOMContentLoaded', actualizarContador);
+        
+        // ✅ Cerrar con Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                cerrarCarrito();
+                cerrarModalDatos();
+            }
+        });
+    </script>
+</body>
+</html>
