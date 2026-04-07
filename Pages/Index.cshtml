@@ -53,6 +53,9 @@
         .footer-version { color: #666; font-size: 11px; margin-top: 6px }
         .footer-flag { margin-right: 3px }
         
+        /* Debug box */
+        #debugBox { position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border-radius: 8px; font-size: 11px; max-width: 300px; max-height: 200px; overflow-y: auto; z-index: 9999; display: none }
+        
         @@media (max-width: 480px) {
             .header { padding: 12px 10px }
             .header-content { flex-direction: column; gap: 12px; text-align: center }
@@ -86,6 +89,9 @@
     </style>
 </head>
 <body>
+    <!-- Debug box para ver qué pasa -->
+    <div id="debugBox"></div>
+    
     <header class="header">
         <div class="header-content">
             <div class="logo">🥩 @(Model.Config?.NombreTienda ?? "Carnicería")</div>
@@ -110,12 +116,7 @@
                             <div class="name">@p.Nombre</div>
                             <div class="price">$@p.PrecioPorKilo.ToString("F2")/kg</div>
                             <input type="number" class="qty" id="q-@p.Id" min="0.5" step="0.5" value="1">
-                            <!-- ✅ USAR data-attributes en vez de onclick con parámetros -->
-                            <button class="add" 
-                                    data-id="@p.Id" 
-                                    data-nombre="@p.Nombre" 
-                                    data-precio="@p.PrecioPorKilo"
-                                    onclick="agregarDesdeBoton(this)">Agregar</button>
+                            <button class="add" data-id="@p.Id" data-nombre="@p.Nombre" data-precio="@p.PrecioPorKilo">Agregar</button>
                         </div>
                     </div>
                 }
@@ -170,7 +171,7 @@
         </div>
     </div>
     
-    <!-- Footer profesional -->
+    <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
             <div>
@@ -190,14 +191,26 @@
     </footer>
     
     <script>
-        // ✅ CONFIGURACIÓN DESDE RAZOR
+        // ✅ DEBUG: Verificar que el script carga
+        console.log('🔍 [DEBUG] Script cargado correctamente');
+        debugLog('Script cargado');
+        
+        function debugLog(msg) {
+            const box = document.getElementById('debugBox');
+            if (box) {
+                box.style.display = 'block';
+                box.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' - ' + msg + '</div>';
+                box.scrollTop = box.scrollHeight;
+            }
+            console.log('[DEBUG]', msg);
+        }
+        
+        // ✅ CONFIGURACIÓN
         const tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
         const whatsappVendedor = '@(Model.Config?.Whatsapp ?? "5492317401729")';
-        const aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
-        const cbu = '@(Model.Config?.Cbu ?? "")';
-        const instrucciones = '@(Model.Config?.InstruccionesPago ?? "Una vez confirmado el pago, preparamos tu pedido.")';
+        debugLog('Tienda: ' + tienda);
         
-        // ✅ FUNCIONES DEL CARRITO
+        // ✅ CARRITO
         function getCarrito() { 
             try { return JSON.parse(localStorage.getItem('carrito') || '[]'); } 
             catch { return []; }
@@ -213,36 +226,60 @@
             const total = c.reduce((s, i) => s + (i.cantidad || 0), 0);
             const el = document.getElementById('cartCount');
             if (el) el.textContent = total;
+            debugLog('Carrito: ' + total + ' items');
         }
         
-        // ✅ FUNCIÓN PARA AGREGAR - USA DATA-ATTRIBUTES (evita problemas con comillas)
-        function agregarDesdeBoton(boton) {
-            const id = parseInt(boton.getAttribute('data-id'));
-            const nombre = boton.getAttribute('data-nombre');
-            const precio = parseFloat(boton.getAttribute('data-precio'));
+        // ✅ AGREGAR AL CARRITO - CON EVENT LISTENER (no onclick)
+        function initAgregarBotones() {
+            const botones = document.querySelectorAll('.add');
+            debugLog('Encontrados ' + botones.length + ' botones Agregar');
             
-            console.log('[CARRITO] Agregando:', id, nombre, precio);
-            
-            const qtyInput = document.getElementById('q-' + id);
-            if (!qtyInput) { alert('❌ Error: No se encontró el producto'); return; }
-            
-            const qty = parseFloat(qtyInput.value) || 1;
-            let c = getCarrito();
-            const e = c.find(x => x.id === id);
-            
-            if (e) { 
-                e.cantidad = (e.cantidad || 0) + qty; 
-                console.log('[CARRITO] Actualizado:', e);
-            } else { 
-                c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty });
-                console.log('[CARRITO] Nuevo producto agregado');
-            }
-            
-            guardarCarrito(c);
-            alert('✅ Agregado: ' + nombre + ' x' + qty + 'kg');
+            botones.forEach(boton => {
+                boton.addEventListener('click', function() {
+                    debugLog('Click en Agregar!');
+                    
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const nombre = this.getAttribute('data-nombre');
+                    const precio = parseFloat(this.getAttribute('data-precio'));
+                    
+                    debugLog('Producto: ID=' + id + ', Nombre=' + nombre + ', Precio=' + precio);
+                    
+                    const qtyInput = document.getElementById('q-' + id);
+                    if (!qtyInput) { 
+                        alert('❌ Error: No se encontró el input de cantidad'); 
+                        debugLog('ERROR: No se encontró q-' + id);
+                        return; 
+                    }
+                    
+                    const qty = parseFloat(qtyInput.value) || 1;
+                    let c = getCarrito();
+                    const e = c.find(x => x.id === id);
+                    
+                    if (e) { 
+                        e.cantidad = (e.cantidad || 0) + qty; 
+                        debugLog('Actualizado producto existente');
+                    } else { 
+                        c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty });
+                        debugLog('Agregado producto nuevo');
+                    }
+                    
+                    guardarCarrito(c);
+                    alert('✅ Agregado: ' + nombre + ' x' + qty + 'kg');
+                    debugLog('Guardado en carrito');
+                });
+            });
         }
         
+        // ✅ INICIALIZAR cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('DOMContentLoaded disparado');
+            actualizarContador();
+            initAgregarBotones();
+        });
+        
+        // ✅ MODALES
         function abrirCarrito() {
+            debugLog('Abrir carrito');
             const c = getCarrito();
             const itemsDiv = document.getElementById('cartItems');
             const totalSpan = document.getElementById('cartTotal');
@@ -283,31 +320,8 @@
             if (c.length === 0) { alert('Tu carrito está vacío'); return; }
             let total = 0;
             c.forEach(item => { total += (item.precioPorKilo || 0) * (item.cantidad || 0); });
-            const btn = document.querySelector('#modalDatos .btn-checkout');
-            const originalText = btn.textContent;
-            btn.textContent = '⏳ Guardando...';
-            btn.disabled = true;
-            try {
-                const pedidoData = {
-                    nombre_cliente: nombre, telefono_cliente: telefono, direccion_cliente: direccion,
-                    notas_cliente: notas, total: total, estado: 'pendiente',
-                    detalles: c.map(item => ({
-                        producto_id: item.id, producto_nombre: item.nombre,
-                        precio_por_kilo: item.precioPorKilo, cantidad: item.cantidad,
-                        subtotal: (item.precioPorKilo || 0) * (item.cantidad || 0)
-                    }))
-                };
-                console.log('[PEDIDO] Enviando:', pedidoData);
-                const response = await fetch('/api/pedidos', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(pedidoData)
-                });
-                if (!response.ok) console.warn('⚠️ No se guardó en BD');
-            } catch (error) { console.error('❌ Error:', error); }
-            finally { btn.textContent = originalText; btn.disabled = false; }
             
             let mensaje = '🥩 *NUEVO PEDIDO - ' + tienda + '*\n\n📦 *Productos:*\n';
-            let total = 0;
             c.forEach(item => { 
                 const subtotal = (item.precioPorKilo || 0) * (item.cantidad || 0);
                 total += subtotal; 
@@ -321,6 +335,7 @@
             if (cbu) mensaje += '\n🏦 CBU: `' + cbu + '`';
             mensaje += '\n\n📋 ' + instrucciones;
             mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante\n3. Recibir confirmación\n\n¡Gracias! 🙏';
+            
             const url = 'https://wa.me/' + whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
             window.open(url, '_blank', 'noopener,noreferrer');
             localStorage.removeItem('carrito');
@@ -329,12 +344,8 @@
             alert('✅ Pedido enviado por WhatsApp');
         }
         
-        // ✅ EVENT LISTENERS
         document.getElementById('modalCarrito')?.addEventListener('click', e => { if (e.target.id === 'modalCarrito') cerrarCarrito(); });
         document.getElementById('modalDatos')?.addEventListener('click', e => { if (e.target.id === 'modalDatos') cerrarDatos(); });
-        
-        // ✅ Inicializar contador del carrito
-        document.addEventListener('DOMContentLoaded', actualizarContador);
     </script>
 </body>
 </html>
