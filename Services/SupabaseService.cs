@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -107,7 +108,6 @@ namespace CarniceriaWhatsApp.Services
                 var url = $"/rest/v1/productos_carniceria?id=eq.{id}&select=*";
                 var response = await _httpClient.PatchAsync(url, content);
                 
-                // ✅ Aceptar tanto 200 OK como 204 No Content como exitosos
                 if (response.StatusCode == System.Net.HttpStatusCode.OK || 
                     response.StatusCode == System.Net.HttpStatusCode.NoContent)
                 {
@@ -319,6 +319,204 @@ namespace CarniceriaWhatsApp.Services
                 Console.WriteLine($"[CONFIG EXCEPTION] {ex.Message}");
                 return new ConfiguracionCarniceria();
             }
+        }
+        
+        // ============================================
+        // ✅ NUEVOS MÉTODOS PARA PEDIDOS Y REPORTES
+        // ============================================
+        
+        public async Task<Pedido> CrearPedidoAsync(Pedido pedido)
+        {
+            try
+            {
+                Console.WriteLine($"[PEDIDO] Creando pedido para {pedido.NombreCliente} - Total: ${pedido.Total}");
+                
+                // 1. Crear el pedido principal
+                var pedidoData = new
+                {
+                    nombre_cliente = pedido.NombreCliente,
+                    telefono_cliente = pedido.TelefonoCliente,
+                    direccion_cliente = pedido.DireccionCliente,
+                    notas_cliente = pedido.NotasCliente,
+                    total = pedido.Total,
+                    estado = pedido.Estado
+                };
+                
+                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+                var json = JsonSerializer.Serialize(pedidoData, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync("/rest/v1/pedidos?select=*", content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[PEDIDO ERROR] {response.StatusCode}: {error}");
+                    return pedido;
+                }
+                
+                var result = await response.Content.ReadFromJsonAsync<List<Pedido>>();
+                var pedidoCreado = result?.Count > 0 ? result[0] : pedido;
+                
+                Console.WriteLine($"[PEDIDO] Creado con ID: {pedidoCreado.Id}");
+                
+                // 2. Crear los detalles del pedido
+                if (pedido.Detalles?.Count > 0 && pedidoCreado.Id != null)
+                {
+                    foreach (var detalle in pedido.Detalles)
+                    {
+                        var detalleData = new
+                        {
+                            pedido_id = pedidoCreado.Id,
+                            producto_id = detalle.ProductoId,
+                            producto_nombre = detalle.ProductoNombre,
+                            precio_por_kilo = detalle.PrecioPorKilo,
+                            cantidad = detalle.Cantidad,
+                            subtotal = detalle.Subtotal
+                        };
+                        
+                        var detalleJson = JsonSerializer.Serialize(detalleData, options);
+                        var detalleContent = new StringContent(detalleJson, Encoding.UTF8, "application/json");
+                        
+                        await _httpClient.PostAsync("/rest/v1/pedido_detalles?select=*", detalleContent);
+                    }
+                    
+                    Console.WriteLine($"[PEDIDO] {pedido.Detalles.Count} detalles agregados");
+                }
+                
+                return pedidoCreado;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PEDIDO EXCEPTION] {ex.Message}");
+                return pedido;
+            }
+        }
+        
+        public async Task<List<Pedido>> ObtenerPedidosAsync(int dias = 30)
+        {
+            try
+            {
+                var fechaDesde = DateTime.Now.AddDays(-dias).ToString("yyyy-MM-dd");
+                var response = await _httpClient.GetAsync($"/rest/v1/pedidos?creado_en=gte.{fechaDesde}&order=creado_en.desc");
+                
+                if (!response.IsSuccessStatusCode) return new List<Pedido>();
+                
+                return await response.Content.ReadFromJsonAsync<List<Pedido>>() ?? new List<Pedido>();
+            }
+            catch { return new List<Pedido>(); }
+        }
+        
+        public async Task<List<Pedido>> ObtenerPedidosPorEstadoAsync(string estado)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"/rest/v1/pedidos?estado=eq.{estado}&order=creado_en.desc");
+                
+                if (!response.IsSuccessStatusCode) return new List<Pedido>();
+                
+                return await response.Content.ReadFromJsonAsync<List<Pedido>>() ?? new List<Pedido>();
+            }
+            catch { return new List<Pedido>(); }
+        }
+        
+        public async Task<ReporteVentas> ObtenerReporteVentasAsync(int dias = 30)
+        {
+            try
+            {
+                Console.WriteLine($"[REPORTE] Generando reporte de {dias} días");
+                
+                var reporte = new ReporteVentas();
+                var fechaDesde = DateTime.Now.AddDays(-dias).ToString("yyyy-MM-dd");
+                
+                // 1. Obtener todos los pedidos del período
+                var pedidosResponse = await _httpClient.GetAsync($"/rest/v1/pedidos?creado_en=gte.{fechaDesde}");
+                if (!pedidosResponse.IsSuccessStatusCode) return reporte;
+                
+                var pedidos = await pedidosResponse.Content.ReadFromJsonAsync<List<Pedido>>() ?? new List<Pedido>();
+                
+                reporte.TotalPedidos = pedidos.Count;
+                reporte.TotalVentas = pedidos.Sum(p => p.Total);
+                reporte.TicketPromedio = pedidos.Count > 0 ? reporte.TotalVentas / pedidos.Count : 0;
+                
+                // 2. Ventas por día
+                var ventasPorDia = pedidos
+                    .GroupBy(p => p.CreadoEn?.Date.ToString("yyyy-MM-dd") ?? "Sin fecha")
+                    .Select(g => new VentaPorDia
+                    {
+                        Fecha = g.Key,
+                        Total = g.Sum(p => p.Total),
+                        Pedidos = g.Count()
+                    })
+                    .OrderBy(v => v.Fecha)
+                    .ToList();
+                
+                reporte.VentasPorDia = ventasPorDia;
+                
+                // 3. Productos más vendidos
+                if (pedidos.Count > 0)
+                {
+                    var pedidoIds = string.Join(",", pedidos.Select(p => p.Id));
+                    var detallesResponse = await _httpClient.GetAsync($"/rest/v1/pedido_detalles?select=producto_nombre,cantidad,subtotal&pedido_id=in.({pedidoIds})");
+                    
+                    if (detallesResponse.IsSuccessStatusCode)
+                    {
+                        var detalles = await detallesResponse.Content.ReadFromJsonAsync<List<PedidoDetalle>>() ?? new List<PedidoDetalle>();
+                        
+                        var productosMasVendidos = detalles
+                            .GroupBy(d => d.ProductoNombre)
+                            .Select(g => new ProductoMasVendido
+                            {
+                                Nombre = g.Key,
+                                CantidadVendida = g.Sum(d => d.Cantidad),
+                                TotalVendido = g.Sum(d => d.Subtotal),
+                                VecesVendido = g.Count()
+                            })
+                            .OrderByDescending(p => p.TotalVendido)
+                            .Take(10)
+                            .ToList();
+                        
+                        reporte.ProductosMasVendidos = productosMasVendidos;
+                    }
+                }
+                
+                // 4. Ventas por estado
+                var ventasPorEstado = pedidos
+                    .GroupBy(p => p.Estado)
+                    .Select(g => new VentaPorEstado
+                    {
+                        Estado = g.Key,
+                        Cantidad = g.Count(),
+                        Total = g.Sum(p => p.Total)
+                    })
+                    .ToList();
+                
+                reporte.VentasPorEstado = ventasPorEstado;
+                
+                Console.WriteLine($"[REPORTE] Total: ${reporte.TotalVentas} | Pedidos: {reporte.TotalPedidos}");
+                
+                return reporte;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[REPORTE EXCEPTION] {ex.Message}");
+                return new ReporteVentas();
+            }
+        }
+        
+        public async Task<bool> ActualizarEstadoPedidoAsync(long pedidoId, string estado)
+        {
+            try
+            {
+                var updateData = new { estado = estado };
+                var json = JsonSerializer.Serialize(updateData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PatchAsync($"/rest/v1/pedidos?id=eq.{pedidoId}", content);
+                
+                return response.IsSuccessStatusCode;
+            }
+            catch { return false; }
         }
     }
 }
