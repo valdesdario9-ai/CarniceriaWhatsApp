@@ -16,5 +16,11 @@ namespace CarniceriaWhatsApp.Services
         
         Task<ConfiguracionCarniceria> ObtenerConfiguracionAsync();
         Task<ConfiguracionCarniceria> ActualizarConfiguracionAsync(ConfiguracionCarniceria config);
+        // ✅ Nuevos métodos para pedidos y reportes
+Task<Pedido> CrearPedidoAsync(Pedido pedido);
+Task<List<Pedido>> ObtenerPedidosAsync(int dias = 30);
+Task<List<Pedido>> ObtenerPedidosPorEstadoAsync(string estado);
+Task<ReporteVentas> ObtenerReporteVentasAsync(int dias = 30);
+Task<bool> ActualizarEstadoPedidoAsync(long pedidoId, string estado);
     }
 }
