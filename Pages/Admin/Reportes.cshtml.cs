@@ -17,20 +17,31 @@ namespace CarniceriaWhatsApp.Pages.Admin
         
         public ReporteVentas? Reporte { get; set; }
         public int Dias { get; set; } = 30;
+        public string? Mensaje { get; set; }
+        public bool EsError { get; set; }
         
         public async Task<IActionResult> OnGetAsync(int dias = 30)
         {
-            Dias = dias;
-            if (Dias <= 0) Dias = 30;
+            // Validar parámetro
+            Dias = dias > 0 ? dias : 30;
             
-            // Si hay error, retornar reporte vacío en vez de null
             try 
             {
                 Reporte = await _supabase.ObtenerReporteVentasAsync(Dias);
+                
+                if (Reporte == null)
+                {
+                    Reporte = new ReporteVentas();
+                    Mensaje = "⚠️ No se pudieron cargar los datos del reporte";
+                    EsError = true;
+                }
             }
-            catch 
+            catch (System.Exception ex)
             {
+                System.Console.WriteLine($"[REPORTES ERROR] {ex.Message}");
                 Reporte = new ReporteVentas();
+                Mensaje = "❌ Error al cargar reportes: " + ex.Message;
+                EsError = true;
             }
             
             return Page();
