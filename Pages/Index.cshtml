@@ -53,7 +53,8 @@
         .footer-version { color: #666; font-size: 11px; margin-top: 6px }
         .footer-flag { margin-right: 3px }
         
-        #debugBox { position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border-radius: 8px; font-size: 11px; max-width: 300px; max-height: 200px; overflow-y: auto; z-index: 9999; display: none }
+        /* ✅ Debug box siempre oculto - solo console.log */
+        #debugBox { display: none !important }
         
         @@media (max-width: 480px) {
             .header { padding: 12px 10px }
@@ -88,7 +89,8 @@
     </style>
 </head>
 <body>
-    <div id="debugBox"></div>
+    <!-- ✅ Debug box oculto (solo para console.log) -->
+    <div id="debugBox" style="display:none"></div>
     
     <header class="header">
         <div class="header-content">
@@ -138,7 +140,6 @@
             </div>
             <div id="cartItems"></div>
             <div class="cart-total">Total: $<span id="cartTotal">0.00</span></div>
-            <!-- ✅ BOTÓN CON ID PARA EVENT LISTENER -->
             <button id="btnFinalizar" class="btn-checkout">✅ Finalizar por WhatsApp</button>
         </div>
     </div>
@@ -166,7 +167,6 @@
                 <label>📝 Notas</label>
                 <textarea id="compradorNotas" rows="2" placeholder="Cortar fino"></textarea>
             </div>
-            <!-- ✅ BOTÓN CON ID PARA EVENT LISTENER -->
             <button id="btnEnviar" class="btn-checkout">📲 Enviar Pedido</button>
         </div>
     </div>
@@ -191,18 +191,13 @@
     </footer>
     
     <script>
-        // ✅ FUNCIONES EN SCOPE GLOBAL (window)
+        // ✅ FUNCIONES EN SCOPE GLOBAL (window) - CON SOLO CONSOLE.LOG
         window.debugLog = function(msg) {
-            const box = document.getElementById('debugBox');
-            if (box) {
-                box.style.display = 'block';
-                box.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' - ' + msg + '</div>';
-                box.scrollTop = box.scrollHeight;
-            }
+            // ✅ Solo console.log, sin caja visual
             console.log('[DEBUG]', msg);
         };
         
-        window.debugLog('🔍 Script iniciado');
+        window.debugLog('🔍 Script iniciado - producción');
         
         // ✅ CONFIGURACIÓN
         window.tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
@@ -210,8 +205,6 @@
         window.aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
         window.cbu = '@(Model.Config?.Cbu ?? "")';
         window.instrucciones = '@(Model.Config?.InstruccionesPago ?? "Una vez confirmado el pago, preparamos tu pedido.")';
-        
-        window.debugLog('Tienda: ' + window.tienda);
         
         // ✅ CARRITO
         window.getCarrito = function() { 
@@ -234,12 +227,9 @@
         // ✅ AGREGAR PRODUCTOS
         window.initAgregarBotones = function() {
             const botones = document.querySelectorAll('.add');
-            window.debugLog('Encontrados ' + botones.length + ' botones Agregar');
             
             botones.forEach(boton => {
                 boton.addEventListener('click', function() {
-                    window.debugLog('Click en Agregar!');
-                    
                     const id = parseInt(this.getAttribute('data-id'));
                     const nombre = this.getAttribute('data-nombre');
                     const precio = parseFloat(this.getAttribute('data-precio'));
@@ -262,7 +252,6 @@
         
         // ✅ ABRIR CARRITO
         window.abrirCarrito = function() {
-            window.debugLog('✅ abrirCarrito() ejecutado');
             const c = window.getCarrito();
             const itemsDiv = document.getElementById('cartItems');
             const totalSpan = document.getElementById('cartTotal');
@@ -281,17 +270,14 @@
                 totalSpan.textContent = total.toFixed(2);
             }
             document.getElementById('modalCarrito').classList.add('show');
-            window.debugLog('Modal carrito abierto');
         };
         
         // ✅ CERRAR MODALES
         window.cerrarCarrito = function() { 
-            window.debugLog('Cerrar carrito');
             document.getElementById('modalCarrito').classList.remove('show'); 
         };
         
         window.cerrarDatos = function() { 
-            window.debugLog('Cerrar datos');
             document.getElementById('modalDatos').classList.remove('show'); 
         };
         
@@ -303,15 +289,11 @@
             window.abrirCarrito(); 
         };
         
-        // ✅ FINALIZAR COMPRA - AHORA CON EVENT LISTENER
+        // ✅ FINALIZAR COMPRA
         window.inicializarBotonesPedido = function() {
-            window.debugLog('Inicializando botones de pedido...');
-            
-            // Botón "Finalizar por WhatsApp" en modal carrito
             const btnFinalizar = document.getElementById('btnFinalizar');
             if (btnFinalizar) {
                 btnFinalizar.addEventListener('click', function() {
-                    window.debugLog('✅ Click en Finalizar por WhatsApp!');
                     const c = window.getCarrito();
                     if (c.length === 0) { 
                         alert('Tu carrito está vacío'); 
@@ -319,38 +301,23 @@
                     }
                     window.cerrarCarrito();
                     document.getElementById('modalDatos').classList.add('show');
-                    window.debugLog('Modal datos abierto');
                 });
-                window.debugLog('Botón Finalizar configurado');
-            } else {
-                window.debugLog('❌ ERROR: No se encontró btnFinalizar');
             }
             
-            // Botón "Enviar Pedido" en modal datos
             const btnEnviar = document.getElementById('btnEnviar');
             if (btnEnviar) {
                 btnEnviar.addEventListener('click', function() {
-                    window.debugLog('✅ Click en Enviar Pedido!');
                     window.guardarYEnviar();
                 });
-                window.debugLog('Botón Enviar configurado');
-            } else {
-                window.debugLog('❌ ERROR: No se encontró btnEnviar');
             }
         };
         
         // ✅ GUARDAR Y ENVIAR
         window.guardarYEnviar = function() {
-            window.debugLog('guardarYEnviar() iniciado');
-            
             const nombre = document.getElementById('compradorNombre').value.trim();
             const telefono = document.getElementById('compradorTelefono').value.trim();
             const direccion = document.getElementById('compradorDireccion').value.trim();
             const notas = document.getElementById('compradorNotas').value.trim();
-            
-            window.debugLog('Nombre: ' + nombre);
-            window.debugLog('Teléfono: ' + telefono);
-            window.debugLog('Dirección: ' + direccion);
             
             if (!nombre || !telefono || !direccion) { 
                 alert('Completá los campos obligatorios (*)'); 
@@ -384,8 +351,6 @@
             mensaje += '\n\n📋 ' + window.instrucciones;
             mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante\n3. Recibir confirmación\n\n¡Gracias! 🙏';
             
-            window.debugLog('Mensaje construido');
-            
             const url = 'https://wa.me/' + window.whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
             window.open(url, '_blank', 'noopener,noreferrer');
             
@@ -393,7 +358,6 @@
             window.actualizarContador();
             window.cerrarDatos();
             alert('✅ Pedido enviado por WhatsApp');
-            window.debugLog('Pedido enviado!');
             
             if (btn) {
                 btn.textContent = '📲 Enviar Pedido';
@@ -403,7 +367,6 @@
         
         // ✅ INICIALIZAR TODO
         document.addEventListener('DOMContentLoaded', function() {
-            window.debugLog('DOMContentLoaded');
             window.actualizarContador();
             window.initAgregarBotones();
             window.inicializarBotonesPedido();
@@ -416,8 +379,6 @@
         document.getElementById('modalDatos')?.addEventListener('click', e => { 
             if (e.target.id === 'modalDatos') window.cerrarDatos(); 
         });
-        
-        window.debugLog('✅ Script completado - todas las funciones en window');
     </script>
 </body>
 </html>
