@@ -421,17 +421,19 @@ namespace CarniceriaWhatsApp.Services
         }
         
         // ✅ MÉTODO CORREGIDO PARA REPORTES - VENTAS POR DÍA FUNCIONAL
-       public async Task<ReporteVentas> ObtenerReporteVentasAsync(int dias = 30)
+      public async Task<ReporteVentas> ObtenerReporteVentasAsync(int dias = 30)
 {
     try
     {
+        Console.WriteLine($"[REPORTE] ========== INICIO ==========");
         Console.WriteLine($"[REPORTE] Generando reporte de {dias} días");
         
         var reporte = new ReporteVentas();
         var fechaDesde = DateTime.Now.AddDays(-dias).ToString("yyyy-MM-dd");
         
-        // ✅ 1. Obtener pedidos - USAR created_at (nombre real en Supabase)
-        var pedidosResponse = await _httpClient.GetAsync($"/rest/v1/pedidos?select=id,nombre_cliente,telefono_cliente,direccion_cliente,notas_cliente,total,estado,created_at&created_at=gte.{fechaDesde}&order=created_at.desc");
+        // 1. Obtener pedidos
+        Console.WriteLine($"[REPORTE] 1️⃣ Consultando pedidos desde {fechaDesde}...");
+        var pedidosResponse = await _httpClient.GetAsync($"/rest/v1/pedidos?select=id,total,estado,created_at&created_at=gte.{fechaDesde}&order=created_at.desc");
         
         if (!pedidosResponse.IsSuccessStatusCode) 
         {
@@ -442,8 +444,8 @@ namespace CarniceriaWhatsApp.Services
         
         var pedidos = await pedidosResponse.Content.ReadFromJsonAsync<List<Pedido>>() ?? new List<Pedido>();
         
-        Console.WriteLine($"[REPORTE] Pedidos encontrados: {pedidos.Count}");
-        foreach(var p in pedidos.Take(3))
+        Console.WriteLine($"[REPORTE] ✅ Pedidos encontrados: {pedidos.Count}");
+        foreach(var p in pedidos.Take(5))
         {
             Console.WriteLine($"  📦 Pedido #{p.Id}: ${p.Total} - Fecha: {p.CreadoEn?.ToString("yyyy-MM-dd") ?? "SIN FECHA"}");
         }
@@ -452,7 +454,8 @@ namespace CarniceriaWhatsApp.Services
         reporte.TotalVentas = pedidos.Sum(p => p.Total);
         reporte.TicketPromedio = pedidos.Count > 0 ? reporte.TotalVentas / pedidos.Count : 0;
         
-        // ✅ 2. Ventas por día - USAR CreadoEn (mapeado desde created_at)
+        // 2. Ventas por día
+        Console.WriteLine($"[REPORTE] 2️⃣ Calculando ventas por día...");
         var ventasPorDia = pedidos
             .Where(p => p.CreadoEn.HasValue)
             .GroupBy(p => p.CreadoEn.Value.Date.ToString("yyyy-MM-dd"))
@@ -465,15 +468,12 @@ namespace CarniceriaWhatsApp.Services
             .OrderByDescending(v => v.Fecha)
             .ToList();
         
-        Console.WriteLine($"[REPORTE] Ventas por día: {ventasPorDia.Count} días con ventas");
-        foreach(var v in ventasPorDia.Take(5))
-        {
-            Console.WriteLine($"  📅 {v.Fecha}: ${v.Total} ({v.Pedidos} pedidos)");
-        }
-        
+        Console.WriteLine($"[REPORTE] ✅ Ventas por día: {ventasPorDia.Count} días con ventas");
         reporte.VentasPorDia = ventasPorDia;
         
-        // ✅ 3. Productos más vendidos
+        // 3. Productos más vendidos - DEBUG EXTENSIVO
+        Console.WriteLine($"[REPORTE] 3️⃣ Obteniendo productos más vendidos...");
+        
         if (pedidos.Count > 0)
         {
             var validPedidoIds = pedidos
@@ -481,21 +481,50 @@ namespace CarniceriaWhatsApp.Services
                 .Select(p => p.Id!.Value)
                 .ToList();
             
+            Console.WriteLine($"[REPORTE] IDs de pedidos válidos: {validPedidoIds.Count}");
+            Console.WriteLine($"[REPORTE] IDs: {string.Join(",", validPedidoIds)}");
+            
             if (validPedidoIds.Count > 0)
             {
                 var pedidoIdsString = string.Join(",", validPedidoIds);
                 
-                // ✅ Usar created_at también en detalles si existe
-                var detallesResponse = await _httpClient.GetAsync($"/rest/v1/pedido_detalles?select=id,pedido_id,producto_id,producto_nombre,precio_por_kilo,cantidad,subtotal&pedido_id=in.({pedidoIdsString})");
+                // ✅ CONSULTA EXPLÍCITA CON TODOS LOS CAMPOS
+                var detallesUrl = $"/rest/v1/pedido_detalles?select=id,pedido_id,producto_id,producto_nombre,precio_por_kilo,cantidad,subtotal&pedido_id=in.({pedidoIdsString})";
+                Console.WriteLine($"[REPORTE] URL detalles: {detallesUrl}");
                 
-                if (detallesResponse.IsSuccessStatusCode)
+                var detallesResponse = await _httpClient.GetAsync(detallesUrl);
+                
+                if (!detallesResponse.IsSuccessStatusCode)
+                {
+                    var error = await detallesResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[REPORTE ERROR detalles] {detallesResponse.StatusCode}: {error}");
+                }
+                else
                 {
                     var detalles = await detallesResponse.Content.ReadFromJsonAsync<List<PedidoDetalle>>() ?? new List<PedidoDetalle>();
                     
-                    Console.WriteLine($"[REPORTE] Detalles encontrados: {detalles.Count}");
+                    Console.WriteLine($"[REPORTE] ✅ Detalles encontrados: {detalles.Count}");
                     
-                    var productosMasVendidos = detalles
-                        .Where(d => !string.IsNullOrEmpty(d.ProductoNombre) && d.ProductoNombre != "Producto sin nombre")
+                    // LOG CADA DETALLE
+                    foreach(var d in detalles.Take(10))
+                    {
+                        Console.WriteLine($"  🥩 Detalle: ID={d.Id}, Pedido={d.PedidoId}, Producto='{d.ProductoNombre}', Cant={d.Cantidad}, Subtotal=${d.Subtotal}");
+                    }
+                    
+                    // FILTRAR Y AGRUPAR
+                    var detallesConNombre = detalles
+                        .Where(d => !string.IsNullOrEmpty(d.ProductoNombre))
+                        .ToList();
+                    
+                    Console.WriteLine($"[REPORTE] Detalles con nombre no vacío: {detallesConNombre.Count}");
+                    
+                    var detallesValidos = detallesConNombre
+                        .Where(d => d.ProductoNombre != "Producto sin nombre")
+                        .ToList();
+                    
+                    Console.WriteLine($"[REPORTE] Detalles válidos (no 'Producto sin nombre'): {detallesValidos.Count}");
+                    
+                    var productosMasVendidos = detallesValidos
                         .GroupBy(d => d.ProductoNombre)
                         .Select(g => new ProductoMasVendido
                         {
@@ -508,23 +537,27 @@ namespace CarniceriaWhatsApp.Services
                         .Take(10)
                         .ToList();
                     
-                    reporte.ProductosMasVendidos = productosMasVendidos;
+                    Console.WriteLine($"[REPORTE] ✅ Productos únicos agrupados: {productosMasVendidos.Count}");
                     
-                    Console.WriteLine($"[REPORTE] Productos únicos: {productosMasVendidos.Count}");
-                    foreach(var prod in productosMasVendidos.Take(3))
+                    foreach(var prod in productosMasVendidos)
                     {
-                        Console.WriteLine($"  🥩 {prod.Nombre}: {prod.CantidadVendida}kg, ${prod.TotalVendido}");
+                        Console.WriteLine($"  🏆 {prod.Nombre}: {prod.CantidadVendida}kg, ${prod.TotalVendido} ({prod.VecesVendido} veces)");
                     }
-                }
-                else
-                {
-                    var error = await detallesResponse.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[REPORTE ERROR detalles] {detallesResponse.StatusCode}: {error}");
+                    
+                    reporte.ProductosMasVendidos = productosMasVendidos;
                 }
             }
+            else
+            {
+                Console.WriteLine("[REPORTE] ⚠️ No hay IDs de pedidos válidos");
+            }
+        }
+        else
+        {
+            Console.WriteLine("[REPORTE] ⚠️ No hay pedidos para procesar");
         }
         
-        // ✅ 4. Ventas por estado
+        // 4. Ventas por estado
         var ventasPorEstado = pedidos
             .GroupBy(p => p.Estado ?? "desconocido")
             .Select(g => new VentaPorEstado
@@ -537,7 +570,8 @@ namespace CarniceriaWhatsApp.Services
         
         reporte.VentasPorEstado = ventasPorEstado;
         
-        Console.WriteLine($"[REPORTE] Finalizado - Total: ${reporte.TotalVentas} | Pedidos: {reporte.TotalPedidos}");
+        Console.WriteLine($"[REPORTE] ========== FIN ==========");
+        Console.WriteLine($"[REPORTE] Total: ${reporte.TotalVentas} | Pedidos: {reporte.TotalPedidos} | Productos: {reporte.ProductosMasVendidos.Count}");
         
         return reporte;
     }
