@@ -138,7 +138,8 @@
             </div>
             <div id="cartItems"></div>
             <div class="cart-total">Total: $<span id="cartTotal">0.00</span></div>
-            <button class="btn-checkout" onclick="finalizarCompra()">✅ Finalizar por WhatsApp</button>
+            <!-- ✅ BOTÓN CON ID PARA EVENT LISTENER -->
+            <button id="btnFinalizar" class="btn-checkout">✅ Finalizar por WhatsApp</button>
         </div>
     </div>
     
@@ -147,7 +148,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">📋 Tus Datos</h3>
-                <button class="modal-close" onclick="cerrarDatos()">&times;</button>
+                <button class="modal-close" onclick="cerrarCarrito()">&times;</button>
             </div>
             <div class="form-group">
                 <label>👤 Nombre *</label>
@@ -165,7 +166,8 @@
                 <label>📝 Notas</label>
                 <textarea id="compradorNotas" rows="2" placeholder="Cortar fino"></textarea>
             </div>
-            <button class="btn-checkout" onclick="guardarYEnviar()">📲 Enviar Pedido</button>
+            <!-- ✅ BOTÓN CON ID PARA EVENT LISTENER -->
+            <button id="btnEnviar" class="btn-checkout">📲 Enviar Pedido</button>
         </div>
     </div>
     
@@ -189,11 +191,8 @@
     </footer>
     
     <script>
-        // ✅ DEBUG
-        console.log('🔍 [DEBUG] Script cargado correctamente');
-        debugLog('Script cargado');
-        
-        function debugLog(msg) {
+        // ✅ FUNCIONES EN SCOPE GLOBAL (window)
+        window.debugLog = function(msg) {
             const box = document.getElementById('debugBox');
             if (box) {
                 box.style.display = 'block';
@@ -201,89 +200,70 @@
                 box.scrollTop = box.scrollHeight;
             }
             console.log('[DEBUG]', msg);
-        }
+        };
         
-        // ✅ CONFIGURACIÓN - TODAS LAS VARIABLES
-        const tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
-        const whatsappVendedor = '@(Model.Config?.Whatsapp ?? "5492317401729")';
-        const aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
-        const cbu = '@(Model.Config?.Cbu ?? "")';
-        const instrucciones = '@(Model.Config?.InstruccionesPago ?? "Una vez confirmado el pago, preparamos tu pedido.")';
+        window.debugLog('🔍 Script iniciado');
         
-        debugLog('Tienda: ' + tienda);
-        debugLog('WhatsApp: ' + whatsappVendedor);
+        // ✅ CONFIGURACIÓN
+        window.tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
+        window.whatsappVendedor = '@(Model.Config?.Whatsapp ?? "5492317401729")';
+        window.aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
+        window.cbu = '@(Model.Config?.Cbu ?? "")';
+        window.instrucciones = '@(Model.Config?.InstruccionesPago ?? "Una vez confirmado el pago, preparamos tu pedido.")';
+        
+        window.debugLog('Tienda: ' + window.tienda);
         
         // ✅ CARRITO
-        function getCarrito() { 
+        window.getCarrito = function() { 
             try { return JSON.parse(localStorage.getItem('carrito') || '[]'); } 
             catch { return []; }
-        }
+        };
         
-        function guardarCarrito(c) { 
+        window.guardarCarrito = function(c) { 
             localStorage.setItem('carrito', JSON.stringify(c)); 
-            actualizarContador(); 
-        }
+            window.actualizarContador(); 
+        };
         
-        function actualizarContador() {
-            const c = getCarrito();
+        window.actualizarContador = function() {
+            const c = window.getCarrito();
             const total = c.reduce((s, i) => s + (i.cantidad || 0), 0);
             const el = document.getElementById('cartCount');
             if (el) el.textContent = total;
-            debugLog('Carrito: ' + total + ' items');
-        }
+        };
         
-        // ✅ AGREGAR AL CARRITO
-        function initAgregarBotones() {
+        // ✅ AGREGAR PRODUCTOS
+        window.initAgregarBotones = function() {
             const botones = document.querySelectorAll('.add');
-            debugLog('Encontrados ' + botones.length + ' botones Agregar');
+            window.debugLog('Encontrados ' + botones.length + ' botones Agregar');
             
             botones.forEach(boton => {
                 boton.addEventListener('click', function() {
-                    debugLog('Click en Agregar!');
+                    window.debugLog('Click en Agregar!');
                     
                     const id = parseInt(this.getAttribute('data-id'));
                     const nombre = this.getAttribute('data-nombre');
                     const precio = parseFloat(this.getAttribute('data-precio'));
                     
-                    debugLog('Producto: ID=' + id + ', Nombre=' + nombre + ', Precio=' + precio);
-                    
                     const qtyInput = document.getElementById('q-' + id);
-                    if (!qtyInput) { 
-                        alert('❌ Error: No se encontró el input de cantidad'); 
-                        debugLog('ERROR: No se encontró q-' + id);
-                        return; 
-                    }
+                    if (!qtyInput) { alert('❌ Error'); return; }
                     
                     const qty = parseFloat(qtyInput.value) || 1;
-                    let c = getCarrito();
+                    let c = window.getCarrito();
                     const e = c.find(x => x.id === id);
                     
-                    if (e) { 
-                        e.cantidad = (e.cantidad || 0) + qty; 
-                        debugLog('Actualizado producto existente');
-                    } else { 
-                        c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty });
-                        debugLog('Agregado producto nuevo');
-                    }
+                    if (e) { e.cantidad = (e.cantidad || 0) + qty; } 
+                    else { c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty }); }
                     
-                    guardarCarrito(c);
+                    window.guardarCarrito(c);
                     alert('✅ Agregado: ' + nombre + ' x' + qty + 'kg');
-                    debugLog('Guardado en carrito');
                 });
             });
-        }
+        };
         
-        // ✅ INICIALIZAR
-        document.addEventListener('DOMContentLoaded', function() {
-            debugLog('DOMContentLoaded disparado');
-            actualizarContador();
-            initAgregarBotones();
-        });
-        
-        // ✅ MODALES
-        function abrirCarrito() {
-            debugLog('Abrir carrito');
-            const c = getCarrito();
+        // ✅ ABRIR CARRITO
+        window.abrirCarrito = function() {
+            window.debugLog('✅ abrirCarrito() ejecutado');
+            const c = window.getCarrito();
             const itemsDiv = document.getElementById('cartItems');
             const totalSpan = document.getElementById('cartTotal');
             if (!itemsDiv || !totalSpan) return;
@@ -295,123 +275,101 @@
                 c.forEach((item, idx) => {
                     const subtotal = (item.precioPorKilo || 0) * (item.cantidad || 0);
                     total += subtotal;
-                    html += '<div class="cart-item"><div><strong>' + (item.nombre || 'Sin nombre') + '</strong><br>$' + (item.precioPorKilo || 0).toFixed(2) + '/kg x ' + (item.cantidad || 0) + 'kg</div><div><strong>$' + subtotal.toFixed(2) + '</strong> <button onclick="eliminar(' + idx + ')" style="background:#dc3545;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;margin-left:10px">&times;</button></div></div>';
+                    html += '<div class="cart-item"><div><strong>' + (item.nombre || 'Sin nombre') + '</strong><br>$' + (item.precioPorKilo || 0).toFixed(2) + '/kg x ' + (item.cantidad || 0) + 'kg</div><div><strong>$' + subtotal.toFixed(2) + '</strong> <button onclick="window.eliminar(' + idx + ')" style="background:#dc3545;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;margin-left:10px">&times;</button></div></div>';
                 });
                 itemsDiv.innerHTML = html;
                 totalSpan.textContent = total.toFixed(2);
             }
             document.getElementById('modalCarrito').classList.add('show');
-        }
+            window.debugLog('Modal carrito abierto');
+        };
         
-        function cerrarCarrito() { 
-            debugLog('Cerrar carrito');
+        // ✅ CERRAR MODALES
+        window.cerrarCarrito = function() { 
+            window.debugLog('Cerrar carrito');
             document.getElementById('modalCarrito').classList.remove('show'); 
-        }
+        };
         
-        function cerrarDatos() { 
-            debugLog('Cerrar datos');
+        window.cerrarDatos = function() { 
+            window.debugLog('Cerrar datos');
             document.getElementById('modalDatos').classList.remove('show'); 
-        }
+        };
         
-        function eliminar(idx) { 
-            let c = getCarrito(); 
+        // ✅ ELIMINAR DEL CARRITO
+        window.eliminar = function(idx) { 
+            let c = window.getCarrito(); 
             c.splice(idx, 1); 
-            guardarCarrito(c); 
-            abrirCarrito(); 
-        }
+            window.guardarCarrito(c); 
+            window.abrirCarrito(); 
+        };
         
-        // ✅ FINALIZAR COMPRA - Muestra modal de datos
-        function finalizarCompra() {
-            debugLog('Finalizar compra - click');
-            const c = getCarrito();
-            if (c.length === 0) { 
-                alert('Tu carrito está vacío'); 
-                debugLog('ERROR: Carrito vacío');
-                return; 
-            }
-            debugLog('Carrito tiene ' + c.length + ' productos');
-            cerrarCarrito();
-            const modal = document.getElementById('modalDatos');
-            if (modal) {
-                modal.classList.add('show');
-                debugLog('Modal datos abierto');
+        // ✅ FINALIZAR COMPRA - AHORA CON EVENT LISTENER
+        window.inicializarBotonesPedido = function() {
+            window.debugLog('Inicializando botones de pedido...');
+            
+            // Botón "Finalizar por WhatsApp" en modal carrito
+            const btnFinalizar = document.getElementById('btnFinalizar');
+            if (btnFinalizar) {
+                btnFinalizar.addEventListener('click', function() {
+                    window.debugLog('✅ Click en Finalizar por WhatsApp!');
+                    const c = window.getCarrito();
+                    if (c.length === 0) { 
+                        alert('Tu carrito está vacío'); 
+                        return; 
+                    }
+                    window.cerrarCarrito();
+                    document.getElementById('modalDatos').classList.add('show');
+                    window.debugLog('Modal datos abierto');
+                });
+                window.debugLog('Botón Finalizar configurado');
             } else {
-                debugLog('ERROR: No se encontró modalDatos');
+                window.debugLog('❌ ERROR: No se encontró btnFinalizar');
             }
-        }
+            
+            // Botón "Enviar Pedido" en modal datos
+            const btnEnviar = document.getElementById('btnEnviar');
+            if (btnEnviar) {
+                btnEnviar.addEventListener('click', function() {
+                    window.debugLog('✅ Click en Enviar Pedido!');
+                    window.guardarYEnviar();
+                });
+                window.debugLog('Botón Enviar configurado');
+            } else {
+                window.debugLog('❌ ERROR: No se encontró btnEnviar');
+            }
+        };
         
-        // ✅ GUARDAR Y ENVIAR PEDIDO
-        async function guardarYEnviar() {
-            debugLog('Guardar y enviar - inicio');
+        // ✅ GUARDAR Y ENVIAR
+        window.guardarYEnviar = function() {
+            window.debugLog('guardarYEnviar() iniciado');
             
             const nombre = document.getElementById('compradorNombre').value.trim();
             const telefono = document.getElementById('compradorTelefono').value.trim();
             const direccion = document.getElementById('compradorDireccion').value.trim();
             const notas = document.getElementById('compradorNotas').value.trim();
             
-            debugLog('Nombre: ' + nombre);
-            debugLog('Teléfono: ' + telefono);
-            debugLog('Dirección: ' + direccion);
+            window.debugLog('Nombre: ' + nombre);
+            window.debugLog('Teléfono: ' + telefono);
+            window.debugLog('Dirección: ' + direccion);
             
             if (!nombre || !telefono || !direccion) { 
                 alert('Completá los campos obligatorios (*)'); 
-                debugLog('ERROR: Campos vacíos');
                 return; 
             }
             
-            const c = getCarrito();
-            if (c.length === 0) { 
-                alert('Tu carrito está vacío'); 
-                return; 
-            }
+            const c = window.getCarrito();
+            if (c.length === 0) { alert('Carrito vacío'); return; }
             
             let total = 0;
             c.forEach(item => { total += (item.precioPorKilo || 0) * (item.cantidad || 0); });
             
-            const btn = document.querySelector('#modalDatos .btn-checkout');
-            const originalText = btn.textContent;
-            btn.textContent = '⏳ Guardando...';
-            btn.disabled = true;
-            
-            try {
-                const pedidoData = {
-                    nombre_cliente: nombre, 
-                    telefono_cliente: telefono, 
-                    direccion_cliente: direccion,
-                    notas_cliente: notas, 
-                    total: total, 
-                    estado: 'pendiente',
-                    detalles: c.map(item => ({
-                        producto_id: item.id, 
-                        producto_nombre: item.nombre,
-                        precio_por_kilo: item.precioPorKilo, 
-                        cantidad: item.cantidad,
-                        subtotal: (item.precioPorKilo || 0) * (item.cantidad || 0)
-                    }))
-                };
-                debugLog('Enviando pedido: ' + JSON.stringify(pedidoData));
-                
-                const response = await fetch('/api/pedidos', {
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(pedidoData)
-                });
-                
-                if (response.ok) {
-                    debugLog('Pedido guardado en BD');
-                } else {
-                    debugLog('Warning: No se guardó en BD (pero continúa)');
-                }
-            } catch (error) { 
-                debugLog('Error al guardar: ' + error.message);
-            } finally { 
-                btn.textContent = originalText; 
-                btn.disabled = false; 
+            const btn = document.getElementById('btnEnviar');
+            if (btn) {
+                btn.textContent = '⏳ Guardando...';
+                btn.disabled = true;
             }
             
-            // ✅ Construir mensaje de WhatsApp
-            let mensaje = '🥩 *NUEVO PEDIDO - ' + tienda + '*\n\n📦 *Productos:*\n';
-            let total = 0;
+            let mensaje = '🥩 *NUEVO PEDIDO - ' + window.tienda + '*\n\n📦 *Productos:*\n';
             c.forEach(item => { 
                 const subtotal = (item.precioPorKilo || 0) * (item.cantidad || 0);
                 total += subtotal; 
@@ -421,30 +379,45 @@
             mensaje += '\n\n👤 *Datos:*\n• Nombre: ' + nombre + '\n• Teléfono: ' + telefono + '\n• Dirección: ' + direccion;
             if (notas) mensaje += '\n• Notas: ' + notas;
             mensaje += '\n\n💳 *Pago:* Transferencia / Mercado Pago';
-            if (aliasMP) mensaje += '\n🟡 Alias MP: `' + aliasMP + '`';
-            if (cbu) mensaje += '\n🏦 CBU: `' + cbu + '`';
-            mensaje += '\n\n📋 ' + instrucciones;
+            if (window.aliasMP) mensaje += '\n🟡 Alias MP: `' + window.aliasMP + '`';
+            if (window.cbu) mensaje += '\n🏦 CBU: `' + window.cbu + '`';
+            mensaje += '\n\n📋 ' + window.instrucciones;
             mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante\n3. Recibir confirmación\n\n¡Gracias! 🙏';
             
-            debugLog('Mensaje WhatsApp construido');
+            window.debugLog('Mensaje construido');
             
-            const url = 'https://wa.me/' + whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
+            const url = 'https://wa.me/' + window.whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
             window.open(url, '_blank', 'noopener,noreferrer');
             
             localStorage.removeItem('carrito');
-            actualizarContador();
-            cerrarDatos();
+            window.actualizarContador();
+            window.cerrarDatos();
             alert('✅ Pedido enviado por WhatsApp');
-            debugLog('Pedido enviado!');
-        }
+            window.debugLog('Pedido enviado!');
+            
+            if (btn) {
+                btn.textContent = '📲 Enviar Pedido';
+                btn.disabled = false;
+            }
+        };
         
-        // ✅ EVENT LISTENERS PARA MODALES
+        // ✅ INICIALIZAR TODO
+        document.addEventListener('DOMContentLoaded', function() {
+            window.debugLog('DOMContentLoaded');
+            window.actualizarContador();
+            window.initAgregarBotones();
+            window.inicializarBotonesPedido();
+        });
+        
+        // ✅ CERRAR MODALES AL CLICKEAR FUERA
         document.getElementById('modalCarrito')?.addEventListener('click', e => { 
-            if (e.target.id === 'modalCarrito') cerrarCarrito(); 
+            if (e.target.id === 'modalCarrito') window.cerrarCarrito(); 
         });
         document.getElementById('modalDatos')?.addEventListener('click', e => { 
-            if (e.target.id === 'modalDatos') cerrarDatos(); 
+            if (e.target.id === 'modalDatos') window.cerrarDatos(); 
         });
+        
+        window.debugLog('✅ Script completado - todas las funciones en window');
     </script>
 </body>
 </html>
