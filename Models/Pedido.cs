@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace CarniceriaWhatsApp.Models
 {
@@ -12,7 +13,11 @@ namespace CarniceriaWhatsApp.Models
         public string NotasCliente { get; set; } = "";
         public decimal Total { get; set; }
         public string Estado { get; set; } = "pendiente";
+        
+        // ✅ CRÍTICO: Mapear created_at de Supabase a CreadoEn en C#
+        [JsonPropertyName("created_at")]
         public DateTime? CreadoEn { get; set; }
+        
         public List<PedidoDetalle> Detalles { get; set; } = new List<PedidoDetalle>();
     }
 
@@ -25,6 +30,9 @@ namespace CarniceriaWhatsApp.Models
         public decimal PrecioPorKilo { get; set; }
         public decimal Cantidad { get; set; }
         public decimal Subtotal { get; set; }
+        
+        // ✅ También mapear created_at si existe
+        [JsonPropertyName("created_at")]
         public DateTime? CreadoEn { get; set; }
     }
 
