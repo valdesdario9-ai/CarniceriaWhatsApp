@@ -23,7 +23,16 @@ namespace CarniceriaWhatsApp.Pages.Admin
             Dias = dias;
             if (Dias <= 0) Dias = 30;
             
-            Reporte = await _supabase.ObtenerReporteVentasAsync(Dias);
+            // Si hay error, retornar reporte vacío en vez de null
+            try 
+            {
+                Reporte = await _supabase.ObtenerReporteVentasAsync(Dias);
+            }
+            catch 
+            {
+                Reporte = new ReporteVentas();
+            }
+            
             return Page();
         }
     }
