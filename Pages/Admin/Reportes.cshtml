@@ -48,27 +48,47 @@
             </div>
         </div>
         
-        <!-- Productos más vendidos -->
-        <div class="section">
-            <h2 class="section-title">🏆 Productos Más Vendidos</h2>
-            @if(Model.Reporte?.ProductosMasVendidos?.Count > 0)
-            {
-                <table class="table">
-                    <thead>
-                        <tr><th>Producto</th><th>Cantidad</th><th>Total</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach(var prod in Model.Reporte.ProductosMasVendidos)
-                        {
-                            <tr>
-                                <td>@prod.Nombre</td>
-                                <td>@prod.CantidadVendida.ToString("F2") kg</td>
-                                <td>$@prod.TotalVendido.ToString("F2")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+       <!-- Productos más vendidos -->
+<div class="section">
+    <h2 class="section-title">🏆 Productos Más Vendidos</h2>
+    @if(Model.Reporte?.ProductosMasVendidos?.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>📦 Producto</th>
+                    <th>⚖️ Cantidad</th>
+                    <th>💰 Total</th>
+                    <th>🔄 Veces</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var prod in Model.Reporte.ProductosMasVendidos)
+                {
+                    <tr>
+                        <td>
+                            @if(!string.IsNullOrEmpty(prod.Nombre))
+                            {
+                                <strong>🥩 @prod.Nombre</strong>
+                            }
+                            else
+                            {
+                                <span style="color:#999;font-style:italic">⚠️ Sin nombre</span>
+                            }
+                        </td>
+                        <td>@prod.CantidadVendida.ToString("F2") kg</td>
+                        <td>$@prod.TotalVendido.ToString("F2")</td>
+                        <td>@prod.VecesVendido</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p style="text-align:center;color:#666;padding:15px">📭 Sin datos aún</p>
+    }
+</div>
             else
             {
                 <p style="text-align:center;color:#666;padding:15px">📭 Sin datos aún</p>
