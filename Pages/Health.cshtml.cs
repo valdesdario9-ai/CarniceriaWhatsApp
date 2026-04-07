@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CarniceriaWhatsApp.Pages
@@ -7,7 +8,7 @@ namespace CarniceriaWhatsApp.Pages
         public IActionResult OnGet()
         {
             Response.ContentType = "application/json";
-            return Content("{\"status\":\"healthy\",\"timestamp\":\"" + DateTime.UtcNow + "\"}");
+            return Content("{\"status\":\"healthy\",\"timestamp\":\"" + System.DateTime.UtcNow + "\"}");
         }
     }
 }
