@@ -14,7 +14,7 @@ namespace CarniceriaWhatsApp.Models
         public decimal Total { get; set; }
         public string Estado { get; set; } = "pendiente";
         
-        // ✅ CRÍTICO: Mapear created_at de Supabase a CreadoEn en C#
+        // ✅ Mapear created_at de Supabase
         [JsonPropertyName("created_at")]
         public DateTime? CreadoEn { get; set; }
         
@@ -24,14 +24,26 @@ namespace CarniceriaWhatsApp.Models
     public class PedidoDetalle
     {
         public long? Id { get; set; }
+        
+        // ✅ CRÍTICO: Mapear columnas snake_case de Supabase
+        [JsonPropertyName("pedido_id")]
         public long PedidoId { get; set; }
+        
+        [JsonPropertyName("producto_id")]
         public long ProductoId { get; set; }
+        
+        [JsonPropertyName("producto_nombre")]
         public string ProductoNombre { get; set; } = "";
+        
+        [JsonPropertyName("precio_por_kilo")]
         public decimal PrecioPorKilo { get; set; }
+        
+        [JsonPropertyName("cantidad")]
         public decimal Cantidad { get; set; }
+        
+        [JsonPropertyName("subtotal")]
         public decimal Subtotal { get; set; }
         
-        // ✅ También mapear created_at si existe
         [JsonPropertyName("created_at")]
         public DateTime? CreadoEn { get; set; }
     }
