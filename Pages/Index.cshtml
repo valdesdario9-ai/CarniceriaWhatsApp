@@ -12,31 +12,13 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box }
         body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh; display: flex; flex-direction: column }
-        
-        /* ✅ Header optimizado */
         .header { background: white; padding: 14px 12px; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 100 }
         .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap }
-        
-        /* ✅ Logo EXTRA GRANDE y destacado */
-        .logo { 
-            font-size: 26px; 
-            font-weight: 800; 
-            color: #333; 
-            text-align: center; 
-            flex: 1; 
-            min-width: 0; 
-            word-wrap: break-word; 
-            white-space: normal; 
-            line-height: 1.4;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            letter-spacing: 0.5px;
-        }
-        
+        .logo { font-size: 26px; font-weight: 800; color: #333; text-align: center; flex: 1; min-width: 0; word-wrap: break-word; white-space: normal; line-height: 1.4; text-shadow: 0 2px 4px rgba(0,0,0,0.1); letter-spacing: 0.5px }
         .nav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center }
         .btn { padding: 9px 14px; border: none; border-radius: 6px; text-decoration: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-size: 14px; white-space: nowrap }
         .btn-cart { background: #25D366; color: white }
         .btn-admin { background: #667eea; color: white }
-        
         .main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 15px; width: 100% }
         h1 { color: white; text-align: center; margin-bottom: 20px; font-size: 22px }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px }
@@ -49,8 +31,6 @@
         .add { width: 100%; padding: 8px; background: #667eea; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px }
         .add:hover { background: #5568d3 }
         .empty { text-align: center; color: white; padding: 40px 20px }
-        
-        /* ✅ Modales */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 10px }
         .modal.show { display: flex }
         .modal-content { background: white; padding: 15px; border-radius: 12px; max-width: 450px; width: 100%; max-height: 90vh; overflow-y: auto }
@@ -63,8 +43,6 @@
         .form-group label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px }
         .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px }
         .btn-checkout { width: 100%; padding: 10px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px }
-        
-        /* ✅ Footer profesional */
         .footer { background: #1a1a2e; color: #aaa; padding: 20px 10px; margin-top: auto; text-align: center; font-size: 12px; line-height: 1.5 }
         .footer-content { max-width: 1200px; margin: 0 auto }
         .footer-developer { color: #667eea; font-weight: 600; text-decoration: none }
@@ -74,19 +52,10 @@
         .footer-contact a:hover { text-decoration: underline }
         .footer-version { color: #666; font-size: 11px; margin-top: 6px }
         .footer-flag { margin-right: 3px }
-        
-        /* ✅ Media Queries para móvil */
         @@media (max-width: 480px) {
             .header { padding: 12px 10px }
             .header-content { flex-direction: column; gap: 12px; text-align: center }
-            /* ✅ Logo EXTRA GRANDE en móvil */
-            .logo { 
-                font-size: 24px; 
-                font-weight: 800;
-                width: 100%;
-                line-height: 1.3;
-                letter-spacing: 0.3px;
-            }
+            .logo { font-size: 24px; font-weight: 800; width: 100%; line-height: 1.3; letter-spacing: 0.3px }
             .nav { width: 100%; justify-content: center }
             .btn { padding: 8px 15px; font-size: 13px }
             h1 { font-size: 19px }
@@ -101,19 +70,16 @@
             .form-group input, .form-group textarea { padding: 7px; font-size: 13px }
             .btn-checkout { padding: 9px; font-size: 13px }
         }
-        
         @@media (min-width: 481px) and (max-width: 768px) {
             .header-content { flex-wrap: wrap }
             .logo { font-size: 25px; flex: none }
             .grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 14px }
         }
-        
         @@media (min-width: 769px) {
             .header-content { flex-wrap: nowrap }
             .logo { font-size: 28px; text-align: left }
             .grid { grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 18px }
         }
-        
         @@media (min-width: 480px) { .grid { grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)) } }
         @@media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)) } }
     </style>
@@ -194,7 +160,7 @@
                 <label>📝 Notas</label>
                 <textarea id="compradorNotas" rows="2" placeholder="Cortar fino"></textarea>
             </div>
-            <button class="btn-checkout" onclick="enviarWhatsApp()">📲 Enviar Pedido</button>
+            <button class="btn-checkout" onclick="guardarYEnviar()">📲 Enviar Pedido</button>
         </div>
     </div>
     
@@ -266,29 +232,105 @@
             cerrarCarrito();
             document.getElementById('modalDatos').classList.add('show');
         }
-        function enviarWhatsApp() {
+        
+        // ✅ NUEVA FUNCIÓN: Guardar pedido y enviar a WhatsApp
+        async function guardarYEnviar() {
             const nombre = document.getElementById('compradorNombre').value.trim();
             const telefono = document.getElementById('compradorTelefono').value.trim();
             const direccion = document.getElementById('compradorDireccion').value.trim();
             const notas = document.getElementById('compradorNotas').value.trim();
-            if (!nombre || !telefono || !direccion) { alert('Completá los campos obligatorios (*)'); return; }
+            
+            if (!nombre || !telefono || !direccion) { 
+                alert('Completá los campos obligatorios (*)'); 
+                return; 
+            }
+            
             const c = getCarrito();
-            let mensaje = '🥩 *NUEVO PEDIDO - ' + tienda + '*\n\n📦 *Productos:*\n', total = 0;
-            c.forEach(item => { const subtotal = item.precioPorKilo * item.cantidad; total += subtotal; mensaje += '• ' + item.nombre + ' x' + item.cantidad + 'kg - $' + subtotal.toFixed(2) + '\n'; });
-            mensaje += '\n💰 *Total: $' + total.toFixed(2) + '*\n\n👤 *Datos:*\n• Nombre: ' + nombre + '\n• Teléfono: ' + telefono + '\n• Dirección: ' + direccion;
+            if (c.length === 0) { 
+                alert('Tu carrito está vacío'); 
+                return; 
+            }
+            
+            // Calcular total
+            let total = 0;
+            c.forEach(item => { 
+                total += item.precioPorKilo * item.cantidad; 
+            });
+            
+            // Mostrar loading
+            const btn = document.querySelector('#modalDatos .btn-checkout');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Guardando...';
+            btn.disabled = true;
+            
+            try {
+                // Guardar pedido en la base de datos
+                const pedidoData = {
+                    nombre_cliente: nombre,
+                    telefono_cliente: telefono,
+                    direccion_cliente: direccion,
+                    notas_cliente: notas,
+                    total: total,
+                    estado: 'pendiente',
+                    detalles: c.map(item => ({
+                        producto_id: item.id,
+                        producto_nombre: item.nombre,
+                        precio_por_kilo: item.precioPorKilo,
+                        cantidad: item.cantidad,
+                        subtotal: item.precioPorKilo * item.cantidad
+                    }))
+                };
+                
+                console.log('[PEDIDO] Enviando datos:', pedidoData);
+                
+                // Enviar a la API para guardar
+                const response = await fetch('/api/pedidos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pedidoData)
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Pedido guardado en la base de datos');
+                } else {
+                    console.warn('⚠️ No se pudo guardar el pedido en la BD, pero se enviará por WhatsApp');
+                }
+            } catch (error) {
+                console.error('❌ Error guardando pedido:', error);
+                // Continuar aunque falle el guardado
+            } finally {
+                // Restaurar botón
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+            
+            // Enviar por WhatsApp
+            let mensaje = '🥩 *NUEVO PEDIDO - ' + tienda + '*\n\n📦 *Productos:*\n';
+            let total = 0;
+            c.forEach(item => { 
+                const subtotal = item.precioPorKilo * item.cantidad; 
+                total += subtotal; 
+                mensaje += '• ' + item.nombre + ' x' + item.cantidad + 'kg - $' + subtotal.toFixed(2) + '\n'; 
+            });
+            mensaje += '\n💰 *Total: $' + total.toFixed(2) + '*';
+            mensaje += '\n\n👤 *Datos:*\n• Nombre: ' + nombre + '\n• Teléfono: ' + telefono + '\n• Dirección: ' + direccion;
             if (notas) mensaje += '\n• Notas: ' + notas;
             mensaje += '\n\n💳 *Pago:* Transferencia / Mercado Pago';
             if (aliasMP) mensaje += '\n🟡 Alias MP: `' + aliasMP + '`';
             if (cbu) mensaje += '\n🏦 CBU: `' + cbu + '`';
             mensaje += '\n\n📋 ' + instrucciones;
             mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante por este chat\n3. Recibir confirmación\n\n¡Gracias! 🙏';
+            
             const url = 'https://wa.me/' + whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
             window.open(url, '_blank', 'noopener,noreferrer');
+            
+            // Limpiar carrito y cerrar
             localStorage.removeItem('carrito');
             actualizarContador();
             cerrarDatos();
             alert('✅ Pedido enviado por WhatsApp');
         }
+        
         document.getElementById('modalCarrito').addEventListener('click', e => { if (e.target.id === 'modalCarrito') cerrarCarrito(); });
         document.getElementById('modalDatos').addEventListener('click', e => { if (e.target.id === 'modalDatos') cerrarDatos(); });
         document.addEventListener('DOMContentLoaded', actualizarContador);
