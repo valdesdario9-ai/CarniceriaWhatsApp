@@ -110,7 +110,12 @@
                             <div class="name">@p.Nombre</div>
                             <div class="price">$@p.PrecioPorKilo.ToString("F2")/kg</div>
                             <input type="number" class="qty" id="q-@p.Id" min="0.5" step="0.5" value="1">
-                            <button class="add" onclick="agregar(@p.Id, '@p.Nombre', @p.PrecioPorKilo)">Agregar</button>
+                            <!-- ✅ USAR data-attributes en vez de onclick con parámetros -->
+                            <button class="add" 
+                                    data-id="@p.Id" 
+                                    data-nombre="@p.Nombre" 
+                                    data-precio="@p.PrecioPorKilo"
+                                    onclick="agregarDesdeBoton(this)">Agregar</button>
                         </div>
                     </div>
                 }
@@ -210,15 +215,29 @@
             if (el) el.textContent = total;
         }
         
-        function agregar(id, nombre, precio) {
+        // ✅ FUNCIÓN PARA AGREGAR - USA DATA-ATTRIBUTES (evita problemas con comillas)
+        function agregarDesdeBoton(boton) {
+            const id = parseInt(boton.getAttribute('data-id'));
+            const nombre = boton.getAttribute('data-nombre');
+            const precio = parseFloat(boton.getAttribute('data-precio'));
+            
             console.log('[CARRITO] Agregando:', id, nombre, precio);
+            
             const qtyInput = document.getElementById('q-' + id);
             if (!qtyInput) { alert('❌ Error: No se encontró el producto'); return; }
+            
             const qty = parseFloat(qtyInput.value) || 1;
             let c = getCarrito();
             const e = c.find(x => x.id === id);
-            if (e) { e.cantidad = (e.cantidad || 0) + qty; } 
-            else { c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty }); }
+            
+            if (e) { 
+                e.cantidad = (e.cantidad || 0) + qty; 
+                console.log('[CARRITO] Actualizado:', e);
+            } else { 
+                c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty });
+                console.log('[CARRITO] Nuevo producto agregado');
+            }
+            
             guardarCarrito(c);
             alert('✅ Agregado: ' + nombre + ' x' + qty + 'kg');
         }
