@@ -421,125 +421,133 @@ namespace CarniceriaWhatsApp.Services
         }
         
         // ✅ MÉTODO CORREGIDO PARA REPORTES - VENTAS POR DÍA FUNCIONAL
-        public async Task<ReporteVentas> ObtenerReporteVentasAsync(int dias = 30)
+       public async Task<ReporteVentas> ObtenerReporteVentasAsync(int dias = 30)
+{
+    try
+    {
+        Console.WriteLine($"[REPORTE] Generando reporte de {dias} días");
+        
+        var reporte = new ReporteVentas();
+        var fechaDesde = DateTime.Now.AddDays(-dias).ToString("yyyy-MM-dd");
+        
+        // ✅ 1. Obtener pedidos - USAR created_at (nombre real en Supabase)
+        var pedidosResponse = await _httpClient.GetAsync($"/rest/v1/pedidos?select=id,nombre_cliente,telefono_cliente,direccion_cliente,notas_cliente,total,estado,created_at&created_at=gte.{fechaDesde}&order=created_at.desc");
+        
+        if (!pedidosResponse.IsSuccessStatusCode) 
         {
-            try
+            var error = await pedidosResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"[REPORTE ERROR pedidos] {pedidosResponse.StatusCode}: {error}");
+            return reporte;
+        }
+        
+        var pedidos = await pedidosResponse.Content.ReadFromJsonAsync<List<Pedido>>() ?? new List<Pedido>();
+        
+        Console.WriteLine($"[REPORTE] Pedidos encontrados: {pedidos.Count}");
+        foreach(var p in pedidos.Take(3))
+        {
+            Console.WriteLine($"  📦 Pedido #{p.Id}: ${p.Total} - Fecha: {p.CreadoEn?.ToString("yyyy-MM-dd") ?? "SIN FECHA"}");
+        }
+        
+        reporte.TotalPedidos = pedidos.Count;
+        reporte.TotalVentas = pedidos.Sum(p => p.Total);
+        reporte.TicketPromedio = pedidos.Count > 0 ? reporte.TotalVentas / pedidos.Count : 0;
+        
+        // ✅ 2. Ventas por día - USAR CreadoEn (mapeado desde created_at)
+        var ventasPorDia = pedidos
+            .Where(p => p.CreadoEn.HasValue)
+            .GroupBy(p => p.CreadoEn.Value.Date.ToString("yyyy-MM-dd"))
+            .Select(g => new VentaPorDia
             {
-                Console.WriteLine($"[REPORTE] Generando reporte de {dias} días");
+                Fecha = g.Key,
+                Total = g.Sum(p => p.Total),
+                Pedidos = g.Count()
+            })
+            .OrderByDescending(v => v.Fecha)
+            .ToList();
+        
+        Console.WriteLine($"[REPORTE] Ventas por día: {ventasPorDia.Count} días con ventas");
+        foreach(var v in ventasPorDia.Take(5))
+        {
+            Console.WriteLine($"  📅 {v.Fecha}: ${v.Total} ({v.Pedidos} pedidos)");
+        }
+        
+        reporte.VentasPorDia = ventasPorDia;
+        
+        // ✅ 3. Productos más vendidos
+        if (pedidos.Count > 0)
+        {
+            var validPedidoIds = pedidos
+                .Where(p => p.Id != null && p.Id > 0)
+                .Select(p => p.Id!.Value)
+                .ToList();
+            
+            if (validPedidoIds.Count > 0)
+            {
+                var pedidoIdsString = string.Join(",", validPedidoIds);
                 
-                var reporte = new ReporteVentas();
-                var fechaDesde = DateTime.Now.AddDays(-dias).ToString("yyyy-MM-dd");
+                // ✅ Usar created_at también en detalles si existe
+                var detallesResponse = await _httpClient.GetAsync($"/rest/v1/pedido_detalles?select=id,pedido_id,producto_id,producto_nombre,precio_por_kilo,cantidad,subtotal&pedido_id=in.({pedidoIdsString})");
                 
-                // 1. Obtener pedidos - ✅ INCLUIR creado_en EXPLÍCITAMENTE en el select
-                var pedidosResponse = await _httpClient.GetAsync($"/rest/v1/pedidos?select=id,nombre_cliente,telefono_cliente,direccion_cliente,notas_cliente,total,estado,creado_en&creado_en=gte.{fechaDesde}&order=creado_en.desc");
-                
-                if (!pedidosResponse.IsSuccessStatusCode) 
+                if (detallesResponse.IsSuccessStatusCode)
                 {
-                    var error = await pedidosResponse.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[REPORTE ERROR pedidos] {pedidosResponse.StatusCode}: {error}");
-                    return reporte;
-                }
-                
-                var pedidos = await pedidosResponse.Content.ReadFromJsonAsync<List<Pedido>>() ?? new List<Pedido>();
-                
-                Console.WriteLine($"[REPORTE] Pedidos encontrados: {pedidos.Count}");
-                
-                reporte.TotalPedidos = pedidos.Count;
-                reporte.TotalVentas = pedidos.Sum(p => p.Total);
-                reporte.TicketPromedio = pedidos.Count > 0 ? reporte.TotalVentas / pedidos.Count : 0;
-                
-                // 2. Ventas por día - ✅ MANEJAR FECHAS CORRECTAMENTE
-                var ventasPorDia = pedidos
-                    .Where(p => p.CreadoEn.HasValue)  // ✅ Solo pedidos con fecha válida
-                    .GroupBy(p => p.CreadoEn.Value.Date.ToString("yyyy-MM-dd"))
-                    .Select(g => new VentaPorDia
-                    {
-                        Fecha = g.Key,
-                        Total = g.Sum(p => p.Total),
-                        Pedidos = g.Count()
-                    })
-                    .OrderByDescending(v => v.Fecha)  // ✅ Más reciente primero
-                    .ToList();
-                
-                Console.WriteLine($"[REPORTE] Ventas por día: {ventasPorDia.Count} días con ventas");
-                foreach(var v in ventasPorDia.Take(3))
-                {
-                    Console.WriteLine($"  📅 {v.Fecha}: ${v.Total} ({v.Pedidos} pedidos)");
-                }
-                
-                reporte.VentasPorDia = ventasPorDia;
-                
-                // 3. Productos más vendidos
-                if (pedidos.Count > 0)
-                {
-                    var validPedidoIds = pedidos
-                        .Where(p => p.Id != null && p.Id > 0)
-                        .Select(p => p.Id!.Value)
+                    var detalles = await detallesResponse.Content.ReadFromJsonAsync<List<PedidoDetalle>>() ?? new List<PedidoDetalle>();
+                    
+                    Console.WriteLine($"[REPORTE] Detalles encontrados: {detalles.Count}");
+                    
+                    var productosMasVendidos = detalles
+                        .Where(d => !string.IsNullOrEmpty(d.ProductoNombre) && d.ProductoNombre != "Producto sin nombre")
+                        .GroupBy(d => d.ProductoNombre)
+                        .Select(g => new ProductoMasVendido
+                        {
+                            Nombre = g.Key,
+                            CantidadVendida = g.Sum(d => d.Cantidad),
+                            TotalVendido = g.Sum(d => d.Subtotal),
+                            VecesVendido = g.Count()
+                        })
+                        .OrderByDescending(p => p.TotalVendido)
+                        .Take(10)
                         .ToList();
                     
-                    if (validPedidoIds.Count > 0)
+                    reporte.ProductosMasVendidos = productosMasVendidos;
+                    
+                    Console.WriteLine($"[REPORTE] Productos únicos: {productosMasVendidos.Count}");
+                    foreach(var prod in productosMasVendidos.Take(3))
                     {
-                        var pedidoIdsString = string.Join(",", validPedidoIds);
-                        
-                        // ✅ Incluir campos explícitos de pedido_detalles
-                        var detallesResponse = await _httpClient.GetAsync($"/rest/v1/pedido_detalles?select=id,pedido_id,producto_id,producto_nombre,precio_por_kilo,cantidad,subtotal,creado_en&pedido_id=in.({pedidoIdsString})");
-                        
-                        if (detallesResponse.IsSuccessStatusCode)
-                        {
-                            var detalles = await detallesResponse.Content.ReadFromJsonAsync<List<PedidoDetalle>>() ?? new List<PedidoDetalle>();
-                            
-                            Console.WriteLine($"[REPORTE] Detalles encontrados: {detalles.Count}");
-                            
-                            var productosMasVendidos = detalles
-                                .Where(d => !string.IsNullOrEmpty(d.ProductoNombre) && d.ProductoNombre != "Producto sin nombre")
-                                .GroupBy(d => d.ProductoNombre)
-                                .Select(g => new ProductoMasVendido
-                                {
-                                    Nombre = g.Key,
-                                    CantidadVendida = g.Sum(d => d.Cantidad),
-                                    TotalVendido = g.Sum(d => d.Subtotal),
-                                    VecesVendido = g.Count()
-                                })
-                                .OrderByDescending(p => p.TotalVendido)
-                                .Take(10)
-                                .ToList();
-                            
-                            reporte.ProductosMasVendidos = productosMasVendidos;
-                            
-                            Console.WriteLine($"[REPORTE] Productos únicos: {productosMasVendidos.Count}");
-                        }
-                        else
-                        {
-                            var error = await detallesResponse.Content.ReadAsStringAsync();
-                            Console.WriteLine($"[REPORTE ERROR detalles] {detallesResponse.StatusCode}: {error}");
-                        }
+                        Console.WriteLine($"  🥩 {prod.Nombre}: {prod.CantidadVendida}kg, ${prod.TotalVendido}");
                     }
                 }
-                
-                // 4. Ventas por estado
-                var ventasPorEstado = pedidos
-                    .GroupBy(p => p.Estado ?? "desconocido")
-                    .Select(g => new VentaPorEstado
-                    {
-                        Estado = g.Key,
-                        Cantidad = g.Count(),
-                        Total = g.Sum(p => p.Total)
-                    })
-                    .ToList();
-                
-                reporte.VentasPorEstado = ventasPorEstado;
-                
-                Console.WriteLine($"[REPORTE] Finalizado - Total: ${reporte.TotalVentas} | Pedidos: {reporte.TotalPedidos}");
-                
-                return reporte;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[REPORTE EXCEPTION] {ex.Message}");
-                Console.WriteLine($"[REPORTE STACK] {ex.StackTrace}");
-                return new ReporteVentas();
+                else
+                {
+                    var error = await detallesResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[REPORTE ERROR detalles] {detallesResponse.StatusCode}: {error}");
+                }
             }
         }
+        
+        // ✅ 4. Ventas por estado
+        var ventasPorEstado = pedidos
+            .GroupBy(p => p.Estado ?? "desconocido")
+            .Select(g => new VentaPorEstado
+            {
+                Estado = g.Key,
+                Cantidad = g.Count(),
+                Total = g.Sum(p => p.Total)
+            })
+            .ToList();
+        
+        reporte.VentasPorEstado = ventasPorEstado;
+        
+        Console.WriteLine($"[REPORTE] Finalizado - Total: ${reporte.TotalVentas} | Pedidos: {reporte.TotalPedidos}");
+        
+        return reporte;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[REPORTE EXCEPTION] {ex.Message}");
+        Console.WriteLine($"[REPORTE STACK] {ex.StackTrace}");
+        return new ReporteVentas();
+    }
+}
         
         public async Task<bool> ActualizarEstadoPedidoAsync(long pedidoId, string estado)
         {
