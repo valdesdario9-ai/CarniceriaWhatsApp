@@ -322,7 +322,7 @@ namespace CarniceriaWhatsApp.Services
         }
         
         // ============================================
-        // ✅ NUEVOS MÉTODOS PARA PEDIDOS Y REPORTES
+        // ✅ MÉTODOS PARA PEDIDOS Y REPORTES (CORREGIDOS)
         // ============================================
         
         public async Task<Pedido> CrearPedidoAsync(Pedido pedido)
@@ -331,7 +331,6 @@ namespace CarniceriaWhatsApp.Services
             {
                 Console.WriteLine($"[PEDIDO] Creando pedido para {pedido.NombreCliente} - Total: ${pedido.Total}");
                 
-                // 1. Crear el pedido principal
                 var pedidoData = new
                 {
                     nombre_cliente = pedido.NombreCliente,
@@ -360,16 +359,19 @@ namespace CarniceriaWhatsApp.Services
                 
                 Console.WriteLine($"[PEDIDO] Creado con ID: {pedidoCreado.Id}");
                 
-                // 2. Crear los detalles del pedido
+                // Crear los detalles del pedido - ✅ Asegurar producto_nombre no sea null
                 if (pedido.Detalles?.Count > 0 && pedidoCreado.Id != null)
                 {
                     foreach (var detalle in pedido.Detalles)
                     {
+                        // ✅ Validar que producto_nombre tenga valor
+                        var nombreProducto = string.IsNullOrEmpty(detalle.ProductoNombre) ? "Producto sin nombre" : detalle.ProductoNombre;
+                        
                         var detalleData = new
                         {
                             pedido_id = pedidoCreado.Id,
                             producto_id = detalle.ProductoId,
-                            producto_nombre = detalle.ProductoNombre,
+                            producto_nombre = nombreProducto,  // ✅ Nunca null o vacío
                             precio_por_kilo = detalle.PrecioPorKilo,
                             cantidad = detalle.Cantidad,
                             subtotal = detalle.Subtotal
@@ -378,7 +380,13 @@ namespace CarniceriaWhatsApp.Services
                         var detalleJson = JsonSerializer.Serialize(detalleData, options);
                         var detalleContent = new StringContent(detalleJson, Encoding.UTF8, "application/json");
                         
-                        await _httpClient.PostAsync("/rest/v1/pedido_detalles?select=*", detalleContent);
+                        var detalleResponse = await _httpClient.PostAsync("/rest/v1/pedido_detalles?select=*", detalleContent);
+                        
+                        if (!detalleResponse.IsSuccessStatusCode)
+                        {
+                            var err = await detalleResponse.Content.ReadAsStringAsync();
+                            Console.WriteLine($"[DETALLE ERROR] {detalleResponse.StatusCode}: {err}");
+                        }
                     }
                     
                     Console.WriteLine($"[PEDIDO] {pedido.Detalles.Count} detalles agregados");
@@ -441,6 +449,7 @@ namespace CarniceriaWhatsApp.Services
                 
                 // 2. Ventas por día
                 var ventasPorDia = pedidos
+                    .Where(p => p.CreadoEn != null)
                     .GroupBy(p => p.CreadoEn?.Date.ToString("yyyy-MM-dd") ?? "Sin fecha")
                     .Select(g => new VentaPorDia
                     {
@@ -453,30 +462,60 @@ namespace CarniceriaWhatsApp.Services
                 
                 reporte.VentasPorDia = ventasPorDia;
                 
-                // 3. Productos más vendidos
+                // 3. Productos más vendidos - ✅ CORREGIDO
                 if (pedidos.Count > 0)
                 {
-                    var pedidoIds = string.Join(",", pedidos.Select(p => p.Id));
-                    var detallesResponse = await _httpClient.GetAsync($"/rest/v1/pedido_detalles?select=producto_nombre,cantidad,subtotal&pedido_id=in.({pedidoIds})");
+                    // ✅ Filtrar solo IDs válidos (no null)
+                    var validPedidoIds = pedidos
+                        .Where(p => p.Id != null && p.Id > 0)
+                        .Select(p => p.Id!.Value)
+                        .ToList();
                     
-                    if (detallesResponse.IsSuccessStatusCode)
+                    if (validPedidoIds.Count > 0)
                     {
-                        var detalles = await detallesResponse.Content.ReadFromJsonAsync<List<PedidoDetalle>>() ?? new List<PedidoDetalle>();
+                        var pedidoIdsString = string.Join(",", validPedidoIds);
                         
-                        var productosMasVendidos = detalles
-                            .GroupBy(d => d.ProductoNombre)
-                            .Select(g => new ProductoMasVendido
+                        // ✅ Usar select=* para traer todos los campos
+                        var detallesResponse = await _httpClient.GetAsync($"/rest/v1/pedido_detalles?select=*&pedido_id=in.({pedidoIdsString})");
+                        
+                        if (detallesResponse.IsSuccessStatusCode)
+                        {
+                            var detalles = await detallesResponse.Content.ReadFromJsonAsync<List<PedidoDetalle>>() ?? new List<PedidoDetalle>();
+                            
+                            Console.WriteLine($"[REPORTE] Detalles encontrados: {detalles.Count}");
+                            
+                            // ✅ Filtrar detalles con nombre válido y agrupar
+                            var productosMasVendidos = detalles
+                                .Where(d => !string.IsNullOrEmpty(d.ProductoNombre) && d.ProductoNombre != "Producto sin nombre")
+                                .GroupBy(d => d.ProductoNombre)
+                                .Select(g => new ProductoMasVendido
+                                {
+                                    Nombre = g.Key ?? "Sin nombre",
+                                    CantidadVendida = g.Sum(d => d.Cantidad),
+                                    TotalVendido = g.Sum(d => d.Subtotal),
+                                    VecesVendido = g.Count()
+                                })
+                                .OrderByDescending(p => p.TotalVendido)
+                                .Take(10)
+                                .ToList();
+                            
+                            reporte.ProductosMasVendidos = productosMasVendidos;
+                            
+                            Console.WriteLine($"[REPORTE] Productos únicos: {productosMasVendidos.Count}");
+                            foreach(var p in productosMasVendidos.Take(3))
                             {
-                                Nombre = g.Key,
-                                CantidadVendida = g.Sum(d => d.Cantidad),
-                                TotalVendido = g.Sum(d => d.Subtotal),
-                                VecesVendido = g.Count()
-                            })
-                            .OrderByDescending(p => p.TotalVendido)
-                            .Take(10)
-                            .ToList();
-                        
-                        reporte.ProductosMasVendidos = productosMasVendidos;
+                                Console.WriteLine($"  🥩 {p.Nombre}: {p.CantidadVendida}kg, ${p.TotalVendido}");
+                            }
+                        }
+                        else
+                        {
+                            var error = await detallesResponse.Content.ReadAsStringAsync();
+                            Console.WriteLine($"[REPORTE ERROR detalles] {detallesResponse.StatusCode}: {error}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("[REPORTE] No hay IDs de pedidos válidos");
                     }
                 }
                 
@@ -485,7 +524,7 @@ namespace CarniceriaWhatsApp.Services
                     .GroupBy(p => p.Estado)
                     .Select(g => new VentaPorEstado
                     {
-                        Estado = g.Key,
+                        Estado = g.Key ?? "desconocido",
                         Cantidad = g.Count(),
                         Total = g.Sum(p => p.Total)
                     })
