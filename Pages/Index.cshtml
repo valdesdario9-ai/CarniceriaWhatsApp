@@ -52,6 +52,17 @@
         .footer-contact a:hover { text-decoration: underline }
         .footer-version { color: #666; font-size: 11px; margin-top: 6px }
         .footer-flag { margin-right: 3px }
+        
+        /* Loading Screen */
+        .loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s }
+        .loading-screen.hidden { opacity: 0; pointer-events: none }
+        .loading-content { text-align: center; color: white }
+        .loading-icon { font-size: 48px; margin-bottom: 20px; animation: pulse 1.5s infinite }
+        .loading-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 15px auto 0 }
+        .loading-fill { width: 60%; height: 100%; background: white; border-radius: 2px; animation: loading 1s infinite }
+        @@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+        @@keyframes loading { 0%{transform:translateX(-100%)} 100%{transform:translateX(250%)} }
+        
         @@media (max-width: 480px) {
             .header { padding: 12px 10px }
             .header-content { flex-direction: column; gap: 12px; text-align: center }
@@ -85,6 +96,15 @@
     </style>
 </head>
 <body>
+    <!-- ✅ Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-icon">🥩</div>
+            <div style="font-size:18px;font-weight:600;margin-bottom:10px">Cargando @(Model.Config?.NombreTienda ?? "Carnicería")...</div>
+            <div class="loading-bar"><div class="loading-fill"></div></div>
+        </div>
+    </div>
+    
     <header class="header">
         <div class="header-content">
             <div class="logo">🥩 @(Model.Config?.NombreTienda ?? "Carnicería")</div>
@@ -184,56 +204,113 @@
     </footer>
     
     <script>
+        // ✅ Configuración desde Razor
         const tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
         const whatsappVendedor = '@(Model.Config?.Whatsapp ?? "5492317401729")';
         const aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
         const cbu = '@(Model.Config?.Cbu ?? "")';
         const instrucciones = '@(Model.Config?.InstruccionesPago ?? "Una vez confirmado el pago, preparamos tu pedido.")';
         
-        function getCarrito() { return JSON.parse(localStorage.getItem('carrito') || '[]'); }
-        function guardarCarrito(c) { localStorage.setItem('carrito', JSON.stringify(c)); actualizarContador(); }
+        // ✅ Funciones del carrito
+        function getCarrito() { 
+            try {
+                return JSON.parse(localStorage.getItem('carrito') || '[]'); 
+            } catch {
+                return [];
+            }
+        }
+        
+        function guardarCarrito(c) { 
+            localStorage.setItem('carrito', JSON.stringify(c)); 
+            actualizarContador(); 
+        }
+        
         function actualizarContador() {
             const c = getCarrito();
-            document.getElementById('cartCount').textContent = c.reduce((s, i) => s + i.cantidad, 0);
+            const total = c.reduce((s, i) => s + (i.cantidad || 0), 0);
+            const el = document.getElementById('cartCount');
+            if (el) el.textContent = total;
         }
+        
+        // ✅ FUNCIÓN AGREGAR - CRÍTICA
         function agregar(id, nombre, precio) {
-            const qty = parseFloat(document.getElementById('q-' + id).value) || 1;
+            console.log('[CARRITO] Agregando:', id, nombre, precio);
+            
+            const qtyInput = document.getElementById('q-' + id);
+            if (!qtyInput) {
+                alert('❌ Error: No se encontró el producto');
+                return;
+            }
+            
+            const qty = parseFloat(qtyInput.value) || 1;
             let c = getCarrito();
             const e = c.find(x => x.id === id);
-            if (e) e.cantidad += qty; else c.push({ id, nombre, precioPorKilo: precio, cantidad: qty });
+            
+            if (e) {
+                e.cantidad = (e.cantidad || 0) + qty;
+            } else {
+                c.push({ 
+                    id: id, 
+                    nombre: nombre, 
+                    precioPorKilo: precio, 
+                    cantidad: qty 
+                });
+            }
+            
             guardarCarrito(c);
             alert('✅ Agregado: ' + nombre + ' x' + qty + 'kg');
+            console.log('[CARRITO] Estado actual:', c);
         }
+        
         function abrirCarrito() {
             const c = getCarrito();
             const itemsDiv = document.getElementById('cartItems');
             const totalSpan = document.getElementById('cartTotal');
+            
+            if (!itemsDiv || !totalSpan) return;
+            
             if (c.length === 0) {
                 itemsDiv.innerHTML = '<p style="text-align:center;color:#666;padding:20px">🛒 Vacío</p>';
                 totalSpan.textContent = '0.00';
             } else {
                 let html = '', total = 0;
                 c.forEach((item, idx) => {
-                    const subtotal = item.precioPorKilo * item.cantidad;
+                    const subtotal = (item.precioPorKilo || 0) * (item.cantidad || 0);
                     total += subtotal;
-                    html += '<div class="cart-item"><div><strong>' + item.nombre + '</strong><br>$' + item.precioPorKilo.toFixed(2) + '/kg x ' + item.cantidad + 'kg</div><div><strong>$' + subtotal.toFixed(2) + '</strong> <button onclick="eliminar(' + idx + ')" style="background:#dc3545;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;margin-left:10px">&times;</button></div></div>';
+                    html += '<div class="cart-item"><div><strong>' + (item.nombre || 'Sin nombre') + '</strong><br>$' + (item.precioPorKilo || 0).toFixed(2) + '/kg x ' + (item.cantidad || 0) + 'kg</div><div><strong>$' + subtotal.toFixed(2) + '</strong> <button onclick="eliminar(' + idx + ')" style="background:#dc3545;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;margin-left:10px">&times;</button></div></div>';
                 });
                 itemsDiv.innerHTML = html;
                 totalSpan.textContent = total.toFixed(2);
             }
             document.getElementById('modalCarrito').classList.add('show');
         }
-        function cerrarCarrito() { document.getElementById('modalCarrito').classList.remove('show'); }
-        function cerrarDatos() { document.getElementById('modalDatos').classList.remove('show'); }
-        function eliminar(idx) { let c = getCarrito(); c.splice(idx, 1); guardarCarrito(c); abrirCarrito(); }
+        
+        function cerrarCarrito() { 
+            document.getElementById('modalCarrito').classList.remove('show'); 
+        }
+        
+        function cerrarDatos() { 
+            document.getElementById('modalDatos').classList.remove('show'); 
+        }
+        
+        function eliminar(idx) { 
+            let c = getCarrito(); 
+            c.splice(idx, 1); 
+            guardarCarrito(c); 
+            abrirCarrito(); 
+        }
+        
         function finalizarCompra() {
             const c = getCarrito();
-            if (c.length === 0) { alert('Tu carrito está vacío'); return; }
+            if (c.length === 0) { 
+                alert('Tu carrito está vacío'); 
+                return; 
+            }
             cerrarCarrito();
             document.getElementById('modalDatos').classList.add('show');
         }
         
-        // ✅ NUEVA FUNCIÓN: Guardar pedido y enviar a WhatsApp
+        // ✅ GUARDAR Y ENVIAR PEDIDO
         async function guardarYEnviar() {
             const nombre = document.getElementById('compradorNombre').value.trim();
             const telefono = document.getElementById('compradorTelefono').value.trim();
@@ -251,20 +328,15 @@
                 return; 
             }
             
-            // Calcular total
             let total = 0;
-            c.forEach(item => { 
-                total += item.precioPorKilo * item.cantidad; 
-            });
+            c.forEach(item => { total += (item.precioPorKilo || 0) * (item.cantidad || 0); });
             
-            // Mostrar loading
             const btn = document.querySelector('#modalDatos .btn-checkout');
             const originalText = btn.textContent;
             btn.textContent = '⏳ Guardando...';
             btn.disabled = true;
             
             try {
-                // Guardar pedido en la base de datos
                 const pedidoData = {
                     nombre_cliente: nombre,
                     telefono_cliente: telefono,
@@ -277,13 +349,12 @@
                         producto_nombre: item.nombre,
                         precio_por_kilo: item.precioPorKilo,
                         cantidad: item.cantidad,
-                        subtotal: item.precioPorKilo * item.cantidad
+                        subtotal: (item.precioPorKilo || 0) * (item.cantidad || 0)
                     }))
                 };
                 
-                console.log('[PEDIDO] Enviando datos:', pedidoData);
+                console.log('[PEDIDO] Enviando:', pedidoData);
                 
-                // Enviar a la API para guardar
                 const response = await fetch('/api/pedidos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -291,24 +362,21 @@
                 });
                 
                 if (response.ok) {
-                    console.log('✅ Pedido guardado en la base de datos');
+                    console.log('✅ Pedido guardado');
                 } else {
-                    console.warn('⚠️ No se pudo guardar el pedido en la BD, pero se enviará por WhatsApp');
+                    console.warn('⚠️ No se guardó en BD');
                 }
             } catch (error) {
-                console.error('❌ Error guardando pedido:', error);
-                // Continuar aunque falle el guardado
+                console.error('❌ Error:', error);
             } finally {
-                // Restaurar botón
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
             
-            // Enviar por WhatsApp
             let mensaje = '🥩 *NUEVO PEDIDO - ' + tienda + '*\n\n📦 *Productos:*\n';
             let total = 0;
             c.forEach(item => { 
-                const subtotal = item.precioPorKilo * item.cantidad; 
+                const subtotal = (item.precioPorKilo || 0) * (item.cantidad || 0);
                 total += subtotal; 
                 mensaje += '• ' + item.nombre + ' x' + item.cantidad + 'kg - $' + subtotal.toFixed(2) + '\n'; 
             });
@@ -319,20 +387,43 @@
             if (aliasMP) mensaje += '\n🟡 Alias MP: `' + aliasMP + '`';
             if (cbu) mensaje += '\n🏦 CBU: `' + cbu + '`';
             mensaje += '\n\n📋 ' + instrucciones;
-            mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante por este chat\n3. Recibir confirmación\n\n¡Gracias! 🙏';
+            mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante\n3. Recibir confirmación\n\n¡Gracias! 🙏';
             
             const url = 'https://wa.me/' + whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
             window.open(url, '_blank', 'noopener,noreferrer');
             
-            // Limpiar carrito y cerrar
             localStorage.removeItem('carrito');
             actualizarContador();
             cerrarDatos();
             alert('✅ Pedido enviado por WhatsApp');
         }
         
-        document.getElementById('modalCarrito').addEventListener('click', e => { if (e.target.id === 'modalCarrito') cerrarCarrito(); });
-        document.getElementById('modalDatos').addEventListener('click', e => { if (e.target.id === 'modalDatos') cerrarDatos(); });
+        // ✅ Event Listeners
+        document.getElementById('modalCarrito').addEventListener('click', e => { 
+            if (e.target.id === 'modalCarrito') cerrarCarrito(); 
+        });
+        document.getElementById('modalDatos').addEventListener('click', e => { 
+            if (e.target.id === 'modalDatos') cerrarDatos(); 
+        });
+        
+        // ✅ Ocultar loading screen cuando cargue todo
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const loading = document.getElementById('loadingScreen');
+                if (loading) {
+                    loading.classList.add('hidden');
+                    setTimeout(() => loading.style.display = 'none', 300);
+                }
+            }, 800);
+        });
+        
+        // ✅ Fallback: ocultar loading después de 10 segundos
+        setTimeout(function() {
+            const loading = document.getElementById('loadingScreen');
+            if (loading) loading.style.display = 'none';
+        }, 10000);
+        
+        // ✅ Inicializar contador
         document.addEventListener('DOMContentLoaded', actualizarContador);
     </script>
 </body>
