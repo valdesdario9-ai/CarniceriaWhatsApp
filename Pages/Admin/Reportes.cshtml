@@ -1,0 +1,187 @@
+@page "/Admin/Reportes"
+@model CarniceriaWhatsApp.Pages.Admin.ReportesModel
+@{
+    ViewData["Title"] = "Reportes";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>@ViewData["Title"] - Admin</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.main{max-width:1200px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}.card{background:white;padding:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.card-title{font-size:14px;color:#666;margin-bottom:8px}.card-value{font-size:28px;font-weight:bold;color:#333}.card-icon{font-size:32px;margin-bottom:10px}.section{background:white;padding:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);margin-bottom:20px}.section-title{font-size:18px;font-weight:bold;color:#333;margin-bottom:15px}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;text-align:left;border-bottom:1px solid #eee}.table th{background:#f8f9fa;font-weight:600;color:#333}.table tr:hover{background:#f8f9fa}.badge{padding:4px 8px;border-radius:4px;font-size:12px;font-weight:600}.badge-pendiente{background:#fff3cd;color:#856404}.badge-confirmado{background:#d1ecf1;color:#0c5460}.badge-enviado{background:#d4edda;color:#155724}.badge-entregado{background:#c3e6cb;color:#0b5131}.btn{padding:10px 16px;border:none;border-radius:8px;text-decoration:none;font-weight:600;cursor:pointer;display:inline-block}.btn-primary{background:#667eea;color:white}.filter{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}.filter select{padding:10px;border:2px solid #ddd;border-radius:8px;font-size:14px}.chart-bar{height:30px;background:#e9ecef;border-radius:4px;overflow:hidden;margin:5px 0}.chart-fill{height:100%;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:4px;transition:width 0.3s}
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">📊 Admin Reportes</div>
+            <nav class="nav">
+                <a href="/">🏪 Tienda</a>
+                <a href="/Admin/Productos">📦 Productos</a>
+                <a href="/Admin/Pedidos">📋 Pedidos</a>
+                <a href="/Admin/Configuracion">⚙️ Config</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="main">
+        <h1>📊 Reportes de Ventas</h1>
+        
+        <!-- Filtros -->
+        <div class="filter">
+            <select id="filtroDias" onchange="location.href='/Admin/Reportes?dias='+this.value">
+                <option value="7" selected="@(Model.Dias==7?"selected":null)">Últimos 7 días</option>
+                <option value="15" selected="@(Model.Dias==15?"selected":null)">Últimos 15 días</option>
+                <option value="30" selected="@(Model.Dias==30?"selected":null)">Últimos 30 días</option>
+                <option value="90" selected="@(Model.Dias==90?"selected":null)">Últimos 90 días</option>
+            </select>
+            <a href="/Admin/Reportes" class="btn btn-primary">🔄 Actualizar</a>
+        </div>
+        
+        <!-- Tarjetas de resumen -->
+        <div class="cards">
+            <div class="card">
+                <div class="card-icon">💰</div>
+                <div class="card-title">Total Vendido</div>
+                <div class="card-value">$@Model.Reporte?.TotalVentas.ToString("F2")</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📦</div>
+                <div class="card-title">Total Pedidos</div>
+                <div class="card-value">@Model.Reporte?.TotalPedidos</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📊</div>
+                <div class="card-title">Ticket Promedio</div>
+                <div class="card-value">$@Model.Reporte?.TicketPromedio.ToString("F2")</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📈</div>
+                <div class="card-title">Días Analizados</div>
+                <div class="card-value">@Model.Dias</div>
+            </div>
+        </div>
+        
+        <!-- Ventas por día -->
+        <div class="section">
+            <h2 class="section-title">📅 Ventas por Día</h2>
+            @if(Model.Reporte?.VentasPorDia?.Count > 0)
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Pedidos</th>
+                            <th>Total</th>
+                            <th>Gráfico</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var maxVenta = Model.Reporte.VentasPorDia.Max(v => v.Total);
+                        }
+                        @foreach(var venta in Model.Reporte.VentasPorDia.OrderByDescending(v => v.Total))
+                        {
+                            var porcentaje = maxVenta > 0 ? (venta.Total / maxVenta * 100) : 0;
+                            <tr>
+                                <td>@venta.Fecha</td>
+                                <td>@venta.Pedidos</td>
+                                <td>$@venta.Total.ToString("F2")</td>
+                                <td>
+                                    <div class="chart-bar">
+                                        <div class="chart-fill" style="width:@porcentaje%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p style="text-align:center;color:#666;padding:20px">📭 No hay ventas en este período</p>
+            }
+        </div>
+        
+        <!-- Productos más vendidos -->
+        <div class="section">
+            <h2 class="section-title">🏆 Productos Más Vendidos</h2>
+            @if(Model.Reporte?.ProductosMasVendidos?.Count > 0)
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Producto</th>
+                            <th>Cantidad Vendida</th>
+                            <th>Total Vendido</th>
+                            <th>Veces Vendido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{int i = 1;}
+                        @foreach(var prod in Model.Reporte.ProductosMasVendidos)
+                        {
+                            <tr>
+                                <td><strong>@i</strong></td>
+                                <td>🥩 @prod.Nombre</td>
+                                <td>@prod.CantidadVendida.ToString("F2") kg</td>
+                                <td>$@prod.TotalVendido.ToString("F2")</td>
+                                <td>@prod.VecesVendido</td>
+                            </tr>
+                            i++;
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p style="text-align:center;color:#666;padding:20px">📭 No hay productos vendidos en este período</p>
+            }
+        </div>
+        
+        <!-- Ventas por estado -->
+        <div class="section">
+            <h2 class="section-title">📋 Pedidos por Estado</h2>
+            @if(Model.Reporte?.VentasPorEstado?.Count > 0)
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Cantidad</th>
+                            <th>Total</th>
+                            <th>Porcentaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var totalPedidos = Model.Reporte.VentasPorEstado.Sum(v => v.Cantidad);
+                        }
+                        @foreach(var estado in Model.Reporte.VentasPorEstado)
+                        {
+                            var porcentaje = totalPedidos > 0 ? (estado.Cantidad * 100 / totalPedidos) : 0;
+                            var badgeClass = "badge-pendiente";
+                            if(estado.Estado == "confirmado") badgeClass = "badge-confirmado";
+                            if(estado.Estado == "enviado") badgeClass = "badge-enviado";
+                            if(estado.Estado == "entregado") badgeClass = "badge-entregado";
+                            <tr>
+                                <td><span class="badge @badgeClass">@estado.Estado</span></td>
+                                <td>@estado.Cantidad</td>
+                                <td>$@estado.Total.ToString("F2")</td>
+                                <td>@porcentaje.ToString("F1")%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p style="text-align:center;color:#666;padding:20px">📭 No hay pedidos en este período</p>
+            }
+        </div>
+    </main>
+</body>
+</html>
