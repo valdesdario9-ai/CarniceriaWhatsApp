@@ -53,15 +53,16 @@
         .footer-version { color: #666; font-size: 11px; margin-top: 6px }
         .footer-flag { margin-right: 3px }
         
-        /* Loading Screen */
-        .loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s }
-        .loading-screen.hidden { opacity: 0; pointer-events: none }
+        /* Loading Screen - Simple y robusto */
+        #loadingScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease }
+        #loadingScreen.hidden { opacity: 0; pointer-events: none }
         .loading-content { text-align: center; color: white }
-        .loading-icon { font-size: 48px; margin-bottom: 20px; animation: pulse 1.5s infinite }
-        .loading-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 15px auto 0 }
-        .loading-fill { width: 60%; height: 100%; background: white; border-radius: 2px; animation: loading 1s infinite }
-        @@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
-        @@keyframes loading { 0%{transform:translateX(-100%)} 100%{transform:translateX(250%)} }
+        .loading-icon { font-size: 48px; margin-bottom: 15px; animation: bounce 1s infinite }
+        .loading-text { font-size: 16px; font-weight: 500; margin-bottom: 10px }
+        .loading-bar { width: 180px; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 0 auto }
+        .loading-fill { width: 50%; height: 100%; background: white; border-radius: 2px; animation: slide 1s ease-in-out infinite }
+        @@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @@keyframes slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
         
         @@media (max-width: 480px) {
             .header { padding: 12px 10px }
@@ -97,10 +98,10 @@
 </head>
 <body>
     <!-- ✅ Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
+    <div id="loadingScreen">
         <div class="loading-content">
             <div class="loading-icon">🥩</div>
-            <div style="font-size:18px;font-weight:600;margin-bottom:10px">Cargando @(Model.Config?.NombreTienda ?? "Carnicería")...</div>
+            <div class="loading-text">Cargando @(Model.Config?.NombreTienda ?? "Carnicería")...</div>
             <div class="loading-bar"><div class="loading-fill"></div></div>
         </div>
     </div>
@@ -204,20 +205,17 @@
     </footer>
     
     <script>
-        // ✅ Configuración desde Razor
+        // ✅ CONFIGURACIÓN DESDE RAZOR
         const tienda = '@(Model.Config?.NombreTienda ?? "Mi Carnicería")';
         const whatsappVendedor = '@(Model.Config?.Whatsapp ?? "5492317401729")';
         const aliasMP = '@(Model.Config?.AliasMercadoPago ?? "")';
         const cbu = '@(Model.Config?.Cbu ?? "")';
         const instrucciones = '@(Model.Config?.InstruccionesPago ?? "Una vez confirmado el pago, preparamos tu pedido.")';
         
-        // ✅ Funciones del carrito
+        // ✅ FUNCIONES DEL CARRITO
         function getCarrito() { 
-            try {
-                return JSON.parse(localStorage.getItem('carrito') || '[]'); 
-            } catch {
-                return [];
-            }
+            try { return JSON.parse(localStorage.getItem('carrito') || '[]'); } 
+            catch { return []; }
         }
         
         function guardarCarrito(c) { 
@@ -232,43 +230,24 @@
             if (el) el.textContent = total;
         }
         
-        // ✅ FUNCIÓN AGREGAR - CRÍTICA
         function agregar(id, nombre, precio) {
             console.log('[CARRITO] Agregando:', id, nombre, precio);
-            
             const qtyInput = document.getElementById('q-' + id);
-            if (!qtyInput) {
-                alert('❌ Error: No se encontró el producto');
-                return;
-            }
-            
+            if (!qtyInput) { alert('❌ Error: No se encontró el producto'); return; }
             const qty = parseFloat(qtyInput.value) || 1;
             let c = getCarrito();
             const e = c.find(x => x.id === id);
-            
-            if (e) {
-                e.cantidad = (e.cantidad || 0) + qty;
-            } else {
-                c.push({ 
-                    id: id, 
-                    nombre: nombre, 
-                    precioPorKilo: precio, 
-                    cantidad: qty 
-                });
-            }
-            
+            if (e) { e.cantidad = (e.cantidad || 0) + qty; } 
+            else { c.push({ id: id, nombre: nombre, precioPorKilo: precio, cantidad: qty }); }
             guardarCarrito(c);
             alert('✅ Agregado: ' + nombre + ' x' + qty + 'kg');
-            console.log('[CARRITO] Estado actual:', c);
         }
         
         function abrirCarrito() {
             const c = getCarrito();
             const itemsDiv = document.getElementById('cartItems');
             const totalSpan = document.getElementById('cartTotal');
-            
             if (!itemsDiv || !totalSpan) return;
-            
             if (c.length === 0) {
                 itemsDiv.innerHTML = '<p style="text-align:center;color:#666;padding:20px">🛒 Vacío</p>';
                 totalSpan.textContent = '0.00';
@@ -285,93 +264,48 @@
             document.getElementById('modalCarrito').classList.add('show');
         }
         
-        function cerrarCarrito() { 
-            document.getElementById('modalCarrito').classList.remove('show'); 
-        }
-        
-        function cerrarDatos() { 
-            document.getElementById('modalDatos').classList.remove('show'); 
-        }
-        
-        function eliminar(idx) { 
-            let c = getCarrito(); 
-            c.splice(idx, 1); 
-            guardarCarrito(c); 
-            abrirCarrito(); 
-        }
-        
+        function cerrarCarrito() { document.getElementById('modalCarrito').classList.remove('show'); }
+        function cerrarDatos() { document.getElementById('modalDatos').classList.remove('show'); }
+        function eliminar(idx) { let c = getCarrito(); c.splice(idx, 1); guardarCarrito(c); abrirCarrito(); }
         function finalizarCompra() {
             const c = getCarrito();
-            if (c.length === 0) { 
-                alert('Tu carrito está vacío'); 
-                return; 
-            }
+            if (c.length === 0) { alert('Tu carrito está vacío'); return; }
             cerrarCarrito();
             document.getElementById('modalDatos').classList.add('show');
         }
         
-        // ✅ GUARDAR Y ENVIAR PEDIDO
         async function guardarYEnviar() {
             const nombre = document.getElementById('compradorNombre').value.trim();
             const telefono = document.getElementById('compradorTelefono').value.trim();
             const direccion = document.getElementById('compradorDireccion').value.trim();
             const notas = document.getElementById('compradorNotas').value.trim();
-            
-            if (!nombre || !telefono || !direccion) { 
-                alert('Completá los campos obligatorios (*)'); 
-                return; 
-            }
-            
+            if (!nombre || !telefono || !direccion) { alert('Completá los campos obligatorios (*)'); return; }
             const c = getCarrito();
-            if (c.length === 0) { 
-                alert('Tu carrito está vacío'); 
-                return; 
-            }
-            
+            if (c.length === 0) { alert('Tu carrito está vacío'); return; }
             let total = 0;
             c.forEach(item => { total += (item.precioPorKilo || 0) * (item.cantidad || 0); });
-            
             const btn = document.querySelector('#modalDatos .btn-checkout');
             const originalText = btn.textContent;
             btn.textContent = '⏳ Guardando...';
             btn.disabled = true;
-            
             try {
                 const pedidoData = {
-                    nombre_cliente: nombre,
-                    telefono_cliente: telefono,
-                    direccion_cliente: direccion,
-                    notas_cliente: notas,
-                    total: total,
-                    estado: 'pendiente',
+                    nombre_cliente: nombre, telefono_cliente: telefono, direccion_cliente: direccion,
+                    notas_cliente: notas, total: total, estado: 'pendiente',
                     detalles: c.map(item => ({
-                        producto_id: item.id,
-                        producto_nombre: item.nombre,
-                        precio_por_kilo: item.precioPorKilo,
-                        cantidad: item.cantidad,
+                        producto_id: item.id, producto_nombre: item.nombre,
+                        precio_por_kilo: item.precioPorKilo, cantidad: item.cantidad,
                         subtotal: (item.precioPorKilo || 0) * (item.cantidad || 0)
                     }))
                 };
-                
                 console.log('[PEDIDO] Enviando:', pedidoData);
-                
                 const response = await fetch('/api/pedidos', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(pedidoData)
                 });
-                
-                if (response.ok) {
-                    console.log('✅ Pedido guardado');
-                } else {
-                    console.warn('⚠️ No se guardó en BD');
-                }
-            } catch (error) {
-                console.error('❌ Error:', error);
-            } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
+                if (!response.ok) console.warn('⚠️ No se guardó en BD');
+            } catch (error) { console.error('❌ Error:', error); }
+            finally { btn.textContent = originalText; btn.disabled = false; }
             
             let mensaje = '🥩 *NUEVO PEDIDO - ' + tienda + '*\n\n📦 *Productos:*\n';
             let total = 0;
@@ -388,42 +322,59 @@
             if (cbu) mensaje += '\n🏦 CBU: `' + cbu + '`';
             mensaje += '\n\n📋 ' + instrucciones;
             mensaje += '\n\n✅ *Próximos pasos:*\n1. Realizar el pago\n2. Enviar comprobante\n3. Recibir confirmación\n\n¡Gracias! 🙏';
-            
             const url = 'https://wa.me/' + whatsappVendedor + '?text=' + encodeURIComponent(mensaje);
             window.open(url, '_blank', 'noopener,noreferrer');
-            
             localStorage.removeItem('carrito');
             actualizarContador();
             cerrarDatos();
             alert('✅ Pedido enviado por WhatsApp');
         }
         
-        // ✅ Event Listeners
-        document.getElementById('modalCarrito').addEventListener('click', e => { 
-            if (e.target.id === 'modalCarrito') cerrarCarrito(); 
-        });
-        document.getElementById('modalDatos').addEventListener('click', e => { 
-            if (e.target.id === 'modalDatos') cerrarDatos(); 
-        });
+        // ✅ EVENT LISTENERS
+        document.getElementById('modalCarrito')?.addEventListener('click', e => { if (e.target.id === 'modalCarrito') cerrarCarrito(); });
+        document.getElementById('modalDatos')?.addEventListener('click', e => { if (e.target.id === 'modalDatos') cerrarDatos(); });
         
-        // ✅ Ocultar loading screen cuando cargue todo
-        window.addEventListener('load', function() {
-            setTimeout(function() {
+        // ✅ OCULTAR LOADING SCREEN - MÉTODO ROBUSTO
+        function hideLoadingScreen() {
+            try {
                 const loading = document.getElementById('loadingScreen');
-                if (loading) {
+                if (loading && !loading.classList.contains('hidden')) {
+                    console.log('[LOADING] Ocultando loading screen...');
                     loading.classList.add('hidden');
-                    setTimeout(() => loading.style.display = 'none', 300);
+                    setTimeout(() => { if (loading) loading.style.display = 'none'; }, 500);
                 }
-            }, 800);
-        });
+            } catch (err) {
+                console.error('[LOADING] Error al ocultar:', err);
+                // Fallback: forzar ocultar
+                const loading = document.getElementById('loadingScreen');
+                if (loading) loading.style.display = 'none';
+            }
+        }
         
-        // ✅ Fallback: ocultar loading después de 10 segundos
-        setTimeout(function() {
+        // ✅ Múltiples formas de asegurar que se oculte
+        // 1. Cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', hideLoadingScreen);
+        } else {
+            hideLoadingScreen();
+        }
+        
+        // 2. Cuando toda la página cargue (imágenes, estilos, etc.)
+        window.addEventListener('load', hideLoadingScreen);
+        
+        // 3. Fallback absoluto: máximo 3 segundos
+        setTimeout(hideLoadingScreen, 3000);
+        
+        // 4. Fallback de emergencia: máximo 10 segundos
+        setTimeout(() => {
             const loading = document.getElementById('loadingScreen');
-            if (loading) loading.style.display = 'none';
+            if (loading && loading.style.display !== 'none') {
+                console.warn('[LOADING] Fallback de emergencia: ocultando por fuerza');
+                loading.style.display = 'none';
+            }
         }, 10000);
         
-        // ✅ Inicializar contador
+        // ✅ Inicializar contador del carrito
         document.addEventListener('DOMContentLoaded', actualizarContador);
     </script>
 </body>
