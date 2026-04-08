@@ -1,26 +1,66 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Threading.Tasks;
+using CarniceriaWhatsApp.Services;
+using CarniceriaWhatsApp.Models;
 
 namespace CarniceriaWhatsApp.Pages.Admin
 {
     public class LoginModel : PageModel
     {
+        private readonly ISupabaseService _supabase;
+        
         public string Message { get; set; } = "";
-        public bool ShowLicenseReminder { get; set; } = false;
+        public bool BloqueadoPorLicencia { get; set; } = false;
+        public string MensajeBloqueo { get; set; } = "";
+        
+        // ✅ Constructor con inyección de dependencia
+        public LoginModel(ISupabaseService supabase)
+        {
+            _supabase = supabase;
+        }
         
         public IActionResult OnGet() => Page();
         
-        public IActionResult OnPost(string Username, string Password)
+        public async Task<IActionResult> OnPostAsync(string Username, string Password)
         {
-            if (Username == "admin" && Password == "admin123")
+            // ✅ 1. Verificar credenciales básicas
+            if (Username != "admin" || Password != "admin123")
             {
-                HttpContext.Session.SetString("AdminLogged", "true");
-                ShowLicenseReminder = true;
+                Message = "❌ Usuario o contraseña incorrectos";
                 return Page();
             }
             
-            Message = "❌ Usuario o contraseña incorrectos";
-            return Page();
+            // ✅ 2. Obtener configuración para verificar estado de licencia
+            var config = await _supabase.ObtenerConfiguracionAsync();
+            var hoy = DateTime.Today;
+            var diaActual = hoy.Day;
+            var mesActual = $"{hoy.Year}-{hoy.Month:D2}";  // Ej: "2026-04"
+            
+            // ✅ 3. Lógica de bloqueo por licencia (solo días 1-10 del mes)
+            if (diaActual >= 1 && diaActual <= 10)
+            {
+                // 📅 Período de pago obligatorio
+                if (!config.LicenciaPagada || config.LicenciaPagadaHasta != mesActual)
+                {
+                    // ❌ Licencia NO pagada para este mes → BLOQUEAR ACCESO
+                    BloqueadoPorLicencia = true;
+                    
+                    var diasRestantes = 10 - diaActual;
+                    MensajeBloqueo = $"⚠️ Recordatorio de Licencia\n\n" +
+                        $"El pago de la licencia es mensual y debe realizarse entre el 1° y 10° de cada mes.\n\n" +
+                        $"📅 Hoy es {hoy:dd 'de' MMMM} - Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.\n\n" +
+                        $"💬 Contactanos por WhatsApp para coordinar el pago.";
+                    
+                    // ⚠️ IMPORTANTE: NO crear sesión, mostrar página de bloqueo
+                    return Page();
+                }
+            }
+            // 📅 Días 11-31: Período de gracia, acceso permitido siempre
+            
+            // ✅ 4. Login exitoso → Crear sesión y redirigir al panel
+            HttpContext.Session.SetString("AdminLogged", "true");
+            return RedirectToPage("/Admin/Productos");
         }
     }
 }
