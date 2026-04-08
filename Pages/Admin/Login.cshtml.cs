@@ -12,15 +12,10 @@ namespace CarniceriaWhatsApp.Pages.Admin
         
         public IActionResult OnPost(string Username, string Password)
         {
-            // ✅ Usuario y contraseña (CAMBIAR en producción)
             if (Username == "admin" && Password == "admin123")
             {
                 HttpContext.Session.SetString("AdminLogged", "true");
-                
-                // ✅ Mostrar recordatorio de licencia después del login
                 ShowLicenseReminder = true;
-                
-                // ✅ Renderizar la misma página con el modal visible
                 return Page();
             }
             
