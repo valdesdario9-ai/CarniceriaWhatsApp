@@ -11,7 +11,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
     {
         private readonly ISupabaseService _supabase;
         
-        // 🔑 CLAVE MAESTRA (MISMA que en Login.cshtml.cs)
+        // 🔑 CLAVE MAESTRA (MISMA que se usa para activar)
         private const string MASTER_KEY = "DEV_MASTER_KEY_2026_CARNICERIA_DV7x9Kp2";
         
         public ProductosModel(ISupabaseService supabase)
@@ -23,26 +23,19 @@ namespace CarniceriaWhatsApp.Pages.Admin
         public string Message { get; set; } = "";
         public bool IsError { get; set; }
         
-        // ✅ Propiedades para el banner de licencia
+        // ✅ Propiedades para banner de licencia
         public bool MostrarBannerLicencia { get; set; } = false;
         public string MensajeBannerLicencia { get; set; } = "";
         public bool LicenciaActivadaEsteMes { get; set; } = false;
         
         public async Task<IActionResult> OnGetAsync()
         {
-            // ✅ Verificar sesión de admin
             if (HttpContext.Session.GetString("AdminLogged") != "true")
-            {
                 return RedirectToPage("/Admin/Login");
-            }
             
-            // ✅ Obtener productos
             Productos = await _supabase.ObtenerProductosAsync();
-            
-            // ✅ Verificar estado de licencia para banner
             await VerificarEstadoLicencia();
             
-            // ✅ Mostrar mensaje de TempData si viene del login
             if (TempData["LicenseWarning"] != null)
             {
                 MostrarBannerLicencia = true;
@@ -52,12 +45,11 @@ namespace CarniceriaWhatsApp.Pages.Admin
             return Page();
         }
         
-        // ✅ HANDLER PARA ACTIVAR LICENCIA CON CLAVE MAESTRA
+        // ✅ HANDLER: Activar licencia con clave maestra
         public async Task<IActionResult> OnPostActivarLicenciaAsync(string MasterKey)
         {
-            System.Console.WriteLine($"[LICENCIA] Intento de activación con clave: {!string.IsNullOrEmpty(MasterKey)}");
+            System.Console.WriteLine($"[LICENCIA] Intento activación: {!string.IsNullOrEmpty(MasterKey)}");
             
-            // ✅ Verificar clave maestra
             if (string.IsNullOrEmpty(MasterKey) || MasterKey != MASTER_KEY)
             {
                 Message = "❌ Clave de licencia incorrecta";
@@ -67,7 +59,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 return Page();
             }
             
-            // ✅ Clave correcta → Actualizar BD
             try
             {
                 var config = await _supabase.ObtenerConfiguracionAsync();
@@ -86,13 +77,12 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 IsError = false;
                 LicenciaActivadaEsteMes = true;
                 
-                // ✅ Redirigir para limpiar TempData y recargar estado
                 return RedirectToPage("/Admin/Productos");
             }
             catch (System.Exception ex)
             {
                 System.Console.WriteLine($"[LICENCIA] ❌ Error: {ex.Message}");
-                Message = "❌ Error al activar licencia: " + ex.Message;
+                Message = "❌ Error al activar: " + ex.Message;
                 IsError = true;
                 await VerificarEstadoLicencia();
                 Productos = await _supabase.ObtenerProductosAsync();
@@ -100,7 +90,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
             }
         }
         
-        // ✅ Método auxiliar para verificar estado de licencia
         private async Task VerificarEstadoLicencia()
         {
             try
@@ -112,14 +101,12 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 
                 bool licenciaAlDia = config.LicenciaPagada && config.LicenciaPagadaHasta == mesActual;
                 
-                // 📅 Días 1-10 + No pagada → Mostrar banner
                 if (!licenciaAlDia && diaActual >= 1 && diaActual <= 10)
                 {
                     var diasRestantes = 10 - diaActual;
                     MensajeBannerLicencia = $"⚠️ Recordatorio: Tu licencia vence el 10 de {hoy:MMMM}. Te quedan {diasRestantes} días para regularizar.";
                     MostrarBannerLicencia = true;
                 }
-                // ✅ Licencia al día → No mostrar banner
                 else if (licenciaAlDia)
                 {
                     MostrarBannerLicencia = false;
@@ -128,7 +115,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
             }
             catch (System.Exception ex)
             {
-                System.Console.WriteLine($"[LICENCIA] Error al verificar: {ex.Message}");
+                System.Console.WriteLine($"[LICENCIA] Error: {ex.Message}");
             }
         }
     }
