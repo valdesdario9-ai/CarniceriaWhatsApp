@@ -21,15 +21,15 @@
             <h2>❌ Acceso Bloqueado</h2>
             <p>@Model.MensajeBloqueo</p>
             <div>
-                <a href="https://wa.me/5492317401729?text=Hola,%20quiero%20regularizar%20el%20pago%20de%20mi%20licencia" class="btn-whatsapp" target="_blank" rel="noopener">💬 Regularizar por WhatsApp</a>
+                <a href="https://wa.me/5492317401729?text=Hola,%20necesito%20activar%20mi%20licencia" class="btn-whatsapp" target="_blank" rel="noopener">💬 Contactar por WhatsApp</a>
                 <br>
-                <a href="mailto:dariovaldes@hotmail.com?subject=Consulta%20Licencia" class="btn-email">✉️ Enviar Email</a>
+                <a href="mailto:dariovaldes@hotmail.com?subject=Activar%20Licencia" class="btn-email">✉️ Enviar Email</a>
             </div>
         </div>
     }
     else
     {
-        <!-- ✅ FORMULARIO DE LOGIN NORMAL -->
+        <!-- ✅ FORMULARIO DE LOGIN -->
         <div class="box">
             <h1>🔐 Admin Login</h1>
             
@@ -50,11 +50,11 @@
                     <input type="password" name="Password" required placeholder="••••••" />
                 </div>
                 
-                <!-- ✅ CAMPO DE CLAVE MAESTRA -->
+                <!-- 🔑 CAMPO DE CLAVE MAESTRA -->
                 <div class="master-key-field">
-                    <label>🔑 Clave de desarrollador <span style="font-weight:normal">(opcional)</span></label>
-                    <input type="password" name="MasterKey" placeholder="Ingresa la clave maestra para habilitar acceso" />
-                    <small>Solo para el desarrollador: permite habilitar acceso si el cliente ya pagó</small>
+                    <label>🔑 Clave de licencia <span style="font-weight:normal">(solo desarrollador)</span></label>
+                    <input type="password" name="MasterKey" placeholder="Ingresá la clave para activar licencia" />
+                    <small>Usá esta clave para activar la licencia cuando el cliente paga</small>
                 </div>
                 
                 <button type="submit" class="btn">🚀 Ingresar</button>
