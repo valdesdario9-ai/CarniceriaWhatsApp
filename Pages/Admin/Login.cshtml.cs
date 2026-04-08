@@ -16,6 +16,8 @@ namespace CarniceriaWhatsApp.Pages.Admin
         public string Message { get; set; } = "";
         public bool BloqueadoPorLicencia { get; set; } = false;
         public string MensajeBloqueo { get; set; } = "";
+        public bool MostrarRecordatorio { get; set; } = false;
+        public string MensajeRecordatorio { get; set; } = "";
         
         public LoginModel(ISupabaseService supabase)
         {
@@ -33,7 +35,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 return Page();
             }
             
-            // ✅ 2. Verificar CLAVE MAESTRA (bypass de licencia)
+            // ✅ 2. Verificar CLAVE MAESTRA (bypass total de licencia)
             bool claveMaestraValida = !string.IsNullOrEmpty(MasterKey) && MasterKey == MASTER_KEY;
             
             // ✅ 3. Obtener configuración para verificar estado de licencia
@@ -42,34 +44,44 @@ namespace CarniceriaWhatsApp.Pages.Admin
             var diaActual = hoy.Day;
             var mesActual = $"{hoy.Year}-{hoy.Month:D2}";  // Ej: "2026-04"
             
-            // ✅ 4. Lógica de bloqueo por licencia (solo días 1-10 del mes)
-            if (diaActual >= 1 && diaActual <= 10)
+            // ✅ 4. Lógica de licencia CORREGIDA
+            if (!config.LicenciaPagada || config.LicenciaPagadaHasta != mesActual)
             {
-                if (!config.LicenciaPagada || config.LicenciaPagadaHasta != mesActual)
+                // ❌ Licencia NO pagada para este mes
+                
+                if (diaActual >= 1 && diaActual <= 10)
                 {
-                    // ❌ Licencia NO pagada
+                    // 📅 Días 1-10: SOLO MOSTRAR RECORDATORIO (pero permitir acceso)
                     if (!claveMaestraValida)
                     {
-                        // 🚫 Sin clave maestra → BLOQUEAR ACCESO
-                        BloqueadoPorLicencia = true;
-                        
+                        MostrarRecordatorio = true;
                         var diasRestantes = 10 - diaActual;
-                        MensajeBloqueo = $"⚠️ Recordatorio de Licencia\n\n" +
-                            $"El pago de la licencia es mensual y debe realizarse entre el 1° y 10° de cada mes.\n\n" +
-                            $"📅 Hoy es {hoy:dd 'de' MMMM} - Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.\n\n" +
-                            $"💬 Contactá al desarrollador para coordinar el pago.";
-                        
+                        MensajeRecordatorio = $"⚠️ Recordatorio: Tu licencia vence el 10 de {hoy:MMMM}. Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.";
+                    }
+                    // ✅ Con clave maestra → Acceso sin recordatorio
+                }
+                else if (diaActual > 10)
+                {
+                    // 📅 Día 11+: BLOQUEAR ACCESO (a menos que tenga clave maestra)
+                    if (!claveMaestraValida)
+                    {
+                        BloqueadoPorLicencia = true;
+                        var diasVencido = diaActual - 10;
+                        MensajeBloqueo = $"❌ Licencia Vencida\n\n" +
+                            $"El pago de la licencia debía realizarse entre el 1° y 10° de {hoy:MMMM}.\n\n" +
+                            $"📅 Hoy es {hoy:dd 'de' MMMM} - Tu acceso está bloqueado hace {diasVencido} día{(diasVencido > 1 ? "s" : "")}.\n\n" +
+                            $"💬 Contactá al desarrollador para regularizar tu situación.";
                         return Page();
                     }
-                    // ✅ Con clave maestra → CONTINUAR (bypass)
+                    // ✅ Con clave maestra → Acceso permitido
                 }
             }
-            // 📅 Días 11-31: Período de gracia, acceso permitido siempre
+            // ✅ Licencia pagada → Acceso normal sin mensajes
             
             // ✅ 5. Login exitoso → Crear sesión y redirigir
             HttpContext.Session.SetString("AdminLogged", "true");
             
-            // ✅ Si se usó clave maestra, mostrar mensaje informativo
+            // ✅ Si se usó clave maestra, mostrar mensaje
             if (claveMaestraValida)
             {
                 Message = "🔓 Acceso habilitado con clave de desarrollador";
