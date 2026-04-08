@@ -7,8 +7,16 @@ namespace CarniceriaWhatsApp.Pages.Admin
     {
         public IActionResult OnGet()
         {
+            // ✅ Eliminar sesión de admin
             HttpContext.Session.Remove("AdminLogged");
+            
+            // ✅ Redirigir al login
             return RedirectToPage("/Admin/Login");
+        }
+        
+        public IActionResult OnPost()
+        {
+            return OnGet();
         }
     }
 }
