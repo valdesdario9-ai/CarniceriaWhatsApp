@@ -13,9 +13,9 @@
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.nav a.active{color:#333;font-weight:700;border-bottom:2px solid #667eea}.main{max-width:1200px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.btn{padding:10px 16px;border:none;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;cursor:pointer}.btn-primary{background:#667eea;color:white}.btn-success{background:#28a745;color:white}.btn-danger{background:#dc3545;color:white}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.card img{width:100%;aspect-ratio:1/1;object-fit:cover}.card-body{padding:15px}.name{font-size:16px;font-weight:600;color:#333;margin-bottom:4px}.price{font-size:18px;color:#28a745;font-weight:700;margin-bottom:10px}.actions{display:flex;gap:10px}.actions .btn{flex:1;text-align:center}
         
         /* ✅ Banner de licencia */
-        .license-banner{background:linear-gradient(135deg,#fff3cd,#ffeaa7);color:#856404;padding:12px 15px;font-size:13px;text-align:center;border-bottom:3px solid #ffc107;animation:slideDown 0.3s ease;z-index:50;position:relative}@@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}.license-banner-content{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}.license-banner-icon{font-size:16px}.license-banner-text{flex:1;min-width:200px;font-weight:500}.license-banner-close{background:none;border:none;font-size:20px;cursor:pointer;color:#856404;padding:0 5px;line-height:1;margin-left:10px}.license-banner-close:hover{color:#665500}.license-banner-btn{background:#667eea;color:white;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;margin-left:10px}.license-banner-btn:hover{background:#5568d3}.license-banner-btn:disabled{background:#ccc;cursor:not-allowed}
+        .license-banner{background:linear-gradient(135deg,#fff3cd,#ffeaa7);color:#856404;padding:12px 15px;font-size:13px;text-align:center;border-bottom:3px solid #ffc107;animation:slideDown 0.3s ease;z-index:50;position:relative}@@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}.license-banner-content{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}.license-banner-icon{font-size:16px}.license-banner-text{flex:1;min-width:200px;font-weight:500}.license-banner-close{background:none;border:none;font-size:20px;cursor:pointer;color:#856404;padding:0 5px;line-height:1;margin-left:10px}.license-banner-close:hover{color:#665500}.license-banner-btn{background:#667eea;color:white;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;margin-left:10px}.license-banner-btn:hover{background:#5568d3}
         
-        /* ✅ Modal para activar licencia */
+        /* ✅ Modal */
         .modal{display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}.modal.show{display:flex}.modal-content{background:white;padding:25px;border-radius:12px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.3)}.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modal-header h3{margin:0;color:#333}.modal-close{background:none;border:none;font-size:24px;cursor:pointer;color:#666}.modal-body{margin-bottom:20px}.modal-body p{color:#666;font-size:14px;line-height:1.5;margin-bottom:15px}.modal-body input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:14px}.modal-body input:focus{outline:none;border-color:#667eea}.modal-footer{display:flex;gap:10px;justify-content:flex-end}.modal-footer .btn{padding:10px 20px}.btn-cancel{background:#6c757d;color:white}.btn-cancel:hover{background:#5a6268}
         
         @@media(max-width:768px){.license-banner-content{flex-direction:column;gap:8px;text-align:center}.license-banner-close{margin-left:0}.license-banner-btn{margin-left:0;width:100%}.modal-footer{flex-direction:column}.modal-footer .btn{width:100%}}
@@ -35,7 +35,7 @@
         </div>
     </header>
     
-    <!-- ✅ BANNER DE LICENCIA (días 1-10 + no pagada) -->
+    <!-- ✅ Banner amarillo (días 1-10 + no pagada) -->
     @if (Model.MostrarBannerLicencia && !Model.LicenciaActivadaEsteMes)
     {
         <div class="license-banner">
@@ -48,7 +48,7 @@
         </div>
     }
     
-    <!-- ✅ Banner cuando ya está activada este mes -->
+    <!-- ✅ Banner verde (ya activada este mes) -->
     @if (Model.LicenciaActivadaEsteMes)
     {
         <div class="license-banner" style="background:linear-gradient(135deg,#d4edda,#c3e6cb);color:#155724;border-bottom-color:#28a745">
@@ -60,7 +60,7 @@
         </div>
     }
     
-    <!-- ✅ MODAL PARA ACTIVAR LICENCIA -->
+    <!-- ✅ Modal para activar -->
     <div id="modalActivar" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -80,11 +80,11 @@
         </div>
     </div>
     
-    <!-- ✅ Mensajes de resultado -->
+    <!-- ✅ Mensajes -->
     @if(!string.IsNullOrEmpty(Model.Message))
     {
         <div style="max-width:1200px;margin:0 auto;padding:0 20px">
-            <div class="alert @(Model.IsError ? "alert-error" : "alert-success")" style="background:@(Model.IsError ? "#f8d7da" : "#d4edda");color:@(Model.IsError ? "#721c24" : "#155724");padding:12px;border-radius:8px;margin-bottom:20px">
+            <div style="background:@(Model.IsError ? "#f8d7da" : "#d4edda");color:@(Model.IsError ? "#721c24" : "#155724");padding:12px;border-radius:8px;margin-bottom:20px">
                 @Model.Message
             </div>
         </div>
@@ -118,23 +118,10 @@
     </main>
     
     <script>
-        function abrirModalActivar() {
-            document.getElementById('modalActivar').classList.add('show');
-        }
-        
-        function cerrarModalActivar() {
-            document.getElementById('modalActivar').classList.remove('show');
-        }
-        
-        // Cerrar modal al hacer clic fuera
-        document.getElementById('modalActivar')?.addEventListener('click', function(e) {
-            if (e.target === this) cerrarModalActivar();
-        });
-        
-        // Cerrar con tecla Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') cerrarModalActivar();
-        });
+        function abrirModalActivar() { document.getElementById('modalActivar').classList.add('show'); }
+        function cerrarModalActivar() { document.getElementById('modalActivar').classList.remove('show'); }
+        document.getElementById('modalActivar')?.addEventListener('click', e => { if (e.target === this) cerrarModalActivar(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalActivar(); });
     </script>
 </body>
 </html>
