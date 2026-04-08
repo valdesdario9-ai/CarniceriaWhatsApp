@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>@ViewData["Title"]</title>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.main{max-width:800px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.form{background:white;padding:30px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input,textarea{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus,textarea:focus{outline:none;border-color:#667eea}.btn{padding:14px 20px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn-primary{background:#667eea;color:white}.section{margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #eee}h2{color:#333;margin-bottom:15px;font-size:18px}.alert{padding:12px;border-radius:8px;margin-bottom:20px}.alert-success{background:#d4edda;color:#155724}.alert-error{background:#f8d7da;color:#721c24}
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.main{max-width:800px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.form{background:white;padding:30px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input,textarea,select{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus,textarea:focus,select:focus{outline:none;border-color:#667eea}.btn{padding:14px 20px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn-primary{background:#667eea;color:white}.section{margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #eee}h2{color:#333;margin-bottom:15px;font-size:18px}.alert{padding:12px;border-radius:8px;margin-bottom:20px}.alert-success{background:#d4edda;color:#155724}.alert-error{background:#f8d7da;color:#721c24}.license-info{background:#f8f9fa;padding:12px;border-radius:8px;font-size:13px;color:#666;line-height:1.5}
     </style>
 </head>
 <body>
@@ -20,6 +20,8 @@
             <nav class="nav">
                 <a href="/">🏪 Tienda</a>
                 <a href="/Admin/Productos">📦 Productos</a>
+                <a href="/Admin/Reportes">📊 Reportes</a>
+                <a href="/Admin/Configuracion" class="active">⚙️ Config</a>
             </nav>
         </div>
     </header>
@@ -28,7 +30,6 @@
         <div class="form">
             @if(!string.IsNullOrEmpty(Model.Message)){<div class="alert @(Model.IsError?"alert-error":"alert-success")">@Model.Message</div>}
             <form method="post">
-                <!-- ✅ Campo oculto CRÍTICO: el Id para saber qué registro actualizar -->
                 <input type="hidden" name="Config.Id" value="@(Model.Config?.Id ?? 0)" />
                 
                 <div class="section">
@@ -88,6 +89,37 @@
                     <div class="form-group">
                         <label>📋 Instrucciones de Pago</label>
                         <textarea name="Config.InstruccionesPago" rows="3">@(Model.Config?.InstruccionesPago ?? "")</textarea>
+                    </div>
+                </div>
+                
+                <!-- ✅ SECCIÓN DE CONTROL DE LICENCIA -->
+                <div class="section" style="border-top:2px solid #667eea;padding-top:20px">
+                    <h2>🔐 Control de Licencia</h2>
+                    
+                    <div class="form-group">
+                        <label>✅ Licencia pagada este mes</label>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <input type="checkbox" id="licenciaPagada" name="Config.LicenciaPagada" value="true" @(Model.Config?.LicenciaPagada == true ? "checked" : "") style="width:20px;height:20px">
+                            <span style="font-size:14px;color:#666">Marcar cuando el cliente confirme el pago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>📅 Pagada hasta (AAAA-MM)</label>
+                        <input type="text" name="Config.LicenciaPagadaHasta" value="@(Model.Config?.LicenciaPagadaHasta ?? "")" placeholder="Ej: 2026-04" maxlength="7" pattern="\d{4}-\d{2}" title="Formato: AAAA-MM">
+                        <small style="color:#666;display:block;margin-top:5px">Formato: AAAA-MM (ej: 2026-04 para abril 2026)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>📝 Nota interna</label>
+                        <textarea name="Config.NotaLicencia" rows="2" placeholder="Ej: Pagó por transferencia el 05/04">@(Model.Config?.NotaLicencia ?? "")</textarea>
+                    </div>
+                    
+                    <div class="license-info">
+                        <strong>ℹ️ Cómo funciona:</strong><br>
+                        • 📅 Días 1-10: Si "Licencia pagada" NO está marcado → Acceso BLOQUEADO<br>
+                        • 📅 Días 11-31: Acceso permitido siempre (período de gracia)<br>
+                        • ✅ Marcá "Licencia pagada" cuando el cliente confirme el pago
                     </div>
                 </div>
                 
