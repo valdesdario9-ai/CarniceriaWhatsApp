@@ -11,6 +11,9 @@
     <title>@ViewData["Title"] - Admin</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh}.header{background:white;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.header-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}.logo{font-size:20px;font-weight:bold;color:#333}.nav a{margin-left:15px;text-decoration:none;color:#667eea;font-weight:600}.nav a.active{color:#333;font-weight:700;border-bottom:2px solid #667eea}.main{max-width:1200px;margin:0 auto;padding:20px}h1{color:#333;margin-bottom:20px}.btn{padding:10px 16px;border:none;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;cursor:pointer}.btn-primary{background:#667eea;color:white}.btn-success{background:#28a745;color:white}.btn-danger{background:#dc3545;color:white}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.1)}.card img{width:100%;aspect-ratio:1/1;object-fit:cover}.card-body{padding:15px}.name{font-size:16px;font-weight:600;color:#333;margin-bottom:4px}.price{font-size:18px;color:#28a745;font-weight:700;margin-bottom:10px}.actions{display:flex;gap:10px}.actions .btn{flex:1;text-align:center}
+        
+        /* ✅ Estilos para banner de recordatorio de licencia */
+        .license-warning-banner{background:linear-gradient(135deg,#fff3cd,#ffeaa7);color:#856404;padding:10px 15px;font-size:13px;text-align:center;border-bottom:3px solid #ffc107;animation:slideDown 0.3s ease;z-index:50;position:relative}@@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}.license-warning-content{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}.license-warning-icon{font-size:16px}.license-warning-text{flex:1;min-width:200px;font-weight:500}.license-warning-close{background:none;border:none;font-size:20px;cursor:pointer;color:#856404;padding:0 5px;line-height:1;margin-left:10px}.license-warning-close:hover{color:#665500}@@media(max-width:768px){.license-warning-content{flex-direction:column;gap:8px;text-align:center}.license-warning-close{margin-left:0}}
     </style>
 </head>
 <body>
@@ -26,6 +29,19 @@
             </nav>
         </div>
     </header>
+    
+    <!-- ✅ BANNER DE RECORDATORIO DE LICENCIA (desde Login con TempData) -->
+    @if (TempData["LicenseWarning"] != null)
+    {
+        <div class="license-warning-banner">
+            <div class="license-warning-content">
+                <span class="license-warning-icon">⚠️</span>
+                <span class="license-warning-text">@TempData["LicenseWarning"]</span>
+                <button class="license-warning-close" onclick="this.closest('.license-warning-banner').style.display='none'">&times;</button>
+            </div>
+        </div>
+    }
+    
     <main class="main">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
             <h1>📦 Productos</h1>
