@@ -10,7 +10,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
     {
         private readonly ISupabaseService _supabase;
         
-        // ✅ CLAVE MAESTRA DEL DESARROLLADOR (CAMBIAR por tu clave real)
         private const string MASTER_KEY = "DEV_MASTER_KEY_2026_CARNICERIA_DV7x9Kp2";
         
         public string Message { get; set; } = "";
@@ -28,64 +27,104 @@ namespace CarniceriaWhatsApp.Pages.Admin
         
         public async Task<IActionResult> OnPostAsync(string Username, string Password, string MasterKey)
         {
+            System.Console.WriteLine("========================================");
+            System.Console.WriteLine($"[LOGIN] Intento de login - Usuario: {Username}");
+            System.Console.WriteLine($"[LOGIN] Fecha del servidor: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            
             // ✅ 1. Verificar credenciales básicas
             if (Username != "admin" || Password != "admin123")
             {
                 Message = "❌ Usuario o contraseña incorrectos";
+                System.Console.WriteLine($"[LOGIN] Credenciales incorrectas");
                 return Page();
             }
             
-            // ✅ 2. Verificar CLAVE MAESTRA (bypass total de licencia)
-            bool claveMaestraValida = !string.IsNullOrEmpty(MasterKey) && MasterKey == MASTER_KEY;
+            System.Console.WriteLine($"[LOGIN] ✅ Credenciales correctas");
             
-            // ✅ 3. Obtener configuración para verificar estado de licencia
+            // ✅ 2. Verificar CLAVE MAESTRA
+            bool claveMaestraValida = !string.IsNullOrEmpty(MasterKey) && MasterKey == MASTER_KEY;
+            System.Console.WriteLine($"[LOGIN] Clave maestra proporcionada: {!string.IsNullOrEmpty(MasterKey)}");
+            System.Console.WriteLine($"[LOGIN] Clave maestra válida: {claveMaestraValida}");
+            
+            // ✅ 3. Obtener configuración
+            System.Console.WriteLine($"[LICENCIA] Obteniendo configuración desde Supabase...");
             var config = await _supabase.ObtenerConfiguracionAsync();
+            
             var hoy = DateTime.Today;
             var diaActual = hoy.Day;
-            var mesActual = $"{hoy.Year}-{hoy.Month:D2}";  // Ej: "2026-04"
+            var mesActual = $"{hoy.Year}-{hoy.Month:D2}";
             
-            // ✅ 4. Lógica de licencia CORREGIDA
-            if (!config.LicenciaPagada || config.LicenciaPagadaHasta != mesActual)
+            System.Console.WriteLine($"[LICENCIA] ========================================");
+            System.Console.WriteLine($"[LICENCIA] Hoy: {hoy:dd/MM/yyyy}");
+            System.Console.WriteLine($"[LICENCIA] Día actual: {diaActual}");
+            System.Console.WriteLine($"[LICENCIA] Mes actual: {mesActual}");
+            System.Console.WriteLine($"[LICENCIA] Licencia pagada (desde BD): {config.LicenciaPagada}");
+            System.Console.WriteLine($"[LICENCIA] Licencia pagada hasta (desde BD): '{config.LicenciaPagadaHasta ?? "NULL"}'");
+            System.Console.WriteLine($"[LICENCIA] ========================================");
+            
+            // ✅ 4. Lógica de licencia
+            bool licenciaAlDia = config.LicenciaPagada && config.LicenciaPagadaHasta == mesActual;
+            System.Console.WriteLine($"[LICENCIA] ¿Licencia al día? {licenciaAlDia}");
+            
+            if (!licenciaAlDia)
             {
-                // ❌ Licencia NO pagada para este mes
+                System.Console.WriteLine($"[LICENCIA] ⚠️ Licencia NO está al día");
                 
                 if (diaActual >= 1 && diaActual <= 10)
                 {
-                    // 📅 Días 1-10: SOLO MOSTRAR RECORDATORIO (pero permitir acceso)
+                    System.Console.WriteLine($"[LICENCIA] 📅 Estamos en días 1-10 (período de recordatorio)");
+                    
                     if (!claveMaestraValida)
                     {
                         MostrarRecordatorio = true;
                         var diasRestantes = 10 - diaActual;
                         MensajeRecordatorio = $"⚠️ Recordatorio: Tu licencia vence el 10 de {hoy:MMMM}. Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.";
+                        
+                        System.Console.WriteLine($"[LICENCIA] ✅ MOSTRANDO RECORDATORIO: {MensajeRecordatorio}");
+                        System.Console.WriteLine($"[LICENCIA] ✅ MostrarRecordatorio = true");
                     }
-                    // ✅ Con clave maestra → Acceso sin recordatorio
+                    else
+                    {
+                        System.Console.WriteLine($"[LICENCIA] 🔓 Clave maestra válida - Sin recordatorio");
+                    }
                 }
                 else if (diaActual > 10)
                 {
-                    // 📅 Día 11+: BLOQUEAR ACCESO (a menos que tenga clave maestra)
+                    System.Console.WriteLine($"[LICENCIA] 📅 Estamos en día {diaActual} (período de BLOQUEO)");
+                    
                     if (!claveMaestraValida)
                     {
                         BloqueadoPorLicencia = true;
                         var diasVencido = diaActual - 10;
-                        MensajeBloqueo = $"❌ Licencia Vencida\n\n" +
-                            $"El pago de la licencia debía realizarse entre el 1° y 10° de {hoy:MMMM}.\n\n" +
-                            $"📅 Hoy es {hoy:dd 'de' MMMM} - Tu acceso está bloqueado hace {diasVencido} día{(diasVencido > 1 ? "s" : "")}.\n\n" +
-                            $"💬 Contactá al desarrollador para regularizar tu situación.";
+                        MensajeBloqueo = $"❌ Licencia Vencida\n\nEl pago debía realizarse entre el 1° y 10° de {hoy:MMMM}.\n\n📅 Hoy es {hoy:dd 'de' MMMM} - Tu acceso está bloqueado hace {diasVencido} día{(diasVencido > 1 ? "s" : "")}.\n\n💬 Contactá al desarrollador para regularizar.";
+                        
+                        System.Console.WriteLine($"[LICENCIA] ❌ BLOQUEADO: {MensajeBloqueo}");
+                        System.Console.WriteLine($"[LICENCIA] ❌ BloqueadoPorLicencia = true");
                         return Page();
                     }
-                    // ✅ Con clave maestra → Acceso permitido
+                    else
+                    {
+                        System.Console.WriteLine($"[LICENCIA] 🔓 Clave maestra válida - Acceso permitido");
+                    }
                 }
             }
-            // ✅ Licencia pagada → Acceso normal sin mensajes
+            else
+            {
+                System.Console.WriteLine($"[LICENCIA] ✅ Licencia al día - Sin mensajes");
+            }
             
-            // ✅ 5. Login exitoso → Crear sesión y redirigir
+            // ✅ 5. Login exitoso
             HttpContext.Session.SetString("AdminLogged", "true");
             
-            // ✅ Si se usó clave maestra, mostrar mensaje
             if (claveMaestraValida)
             {
                 Message = "🔓 Acceso habilitado con clave de desarrollador";
             }
+            
+            System.Console.WriteLine($"[LOGIN] ✅ Login exitoso - Redirigiendo a Productos");
+            System.Console.WriteLine($"[LOGIN] MostrarRecordatorio = {MostrarRecordatorio}");
+            System.Console.WriteLine($"[LOGIN] MensajeRecordatorio = {MensajeRecordatorio}");
+            System.Console.WriteLine("========================================");
             
             return RedirectToPage("/Admin/Productos");
         }
