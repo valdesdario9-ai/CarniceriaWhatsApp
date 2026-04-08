@@ -49,7 +49,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
             return Page();
         }
         
-        // ✅ HANDLER: Activar licencia con actualización DIRECTA
+        // ✅ HANDLER: Activar licencia con actualización DIRECTA (CORREGIDO)
         public async Task<IActionResult> OnPostActivarLicenciaAsync(string MasterKey)
         {
             System.Console.WriteLine("========================================");
@@ -111,19 +111,22 @@ namespace CarniceriaWhatsApp.Pages.Admin
                     return Page();
                 }
                 
-                // ✅ 5. Hacer PATCH directo
+                // ✅ 5. Hacer PATCH directo (CORREGIDO: sin Content-Type en headers)
                 var configId = config.Id ?? 1;
                 var url = $"{supabaseUrl}/rest/v1/configuracion_carniceria?id=eq.{configId}";
                 
                 System.Console.WriteLine($"[LICENCIA] 🔗 URL: {url}");
                 
+                // ✅ Limpiar headers previos y agregar SOLO los de request
                 _httpClient.DefaultRequestHeaders.Clear();
                 _httpClient.DefaultRequestHeaders.Add("apikey", supabaseKey);
                 _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {supabaseKey}");
-                _httpClient.DefaultRequestHeaders.Add("Content-Type", "application/json");
+                // ✅ NO agregar Content-Type aquí (es header de contenido, va en StringContent)
                 _httpClient.DefaultRequestHeaders.Add("Prefer", "return=representation");
                 
+                // ✅ StringContent ya establece Content-Type automáticamente
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
                 var response = await _httpClient.PatchAsync(url, content);
                 
                 var responseBody = await response.Content.ReadAsStringAsync();
