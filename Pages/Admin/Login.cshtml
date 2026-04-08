@@ -1,78 +1,63 @@
-@page "/Admin/Login"
-@model CarniceriaWhatsApp.Pages.Admin.LoginModel
-@{
-    ViewData["Title"] = "Admin Login";
-}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>@ViewData["Title"]</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.box{background:white;padding:30px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:100%;max-width:400px}h1{color:#333;margin-bottom:20px;text-align:center}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus{outline:none;border-color:#667eea}.btn{width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn:hover{background:#128C7E}.error{background:#f8d7da;color:#721c24;padding:12px;border-radius:8px;margin-bottom:20px}
-        
-        /* ✅ Modal de licencia - CSS con @@ para Razor */
-        .modal-licencia{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;animation:fadeIn 0.3s ease}@@keyframes fadeIn{from{opacity:0}to{opacity:1}}.modal-licencia-content{background:white;border-radius:12px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.3);overflow:hidden;animation:slideUp 0.3s ease}@@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-licencia-header{padding:15px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;justify-content:space-between;align-items:center}.modal-licencia-header h3{margin:0;font-size:16px;font-weight:600}.modal-licencia-header button{background:none;border:none;font-size:24px;cursor:pointer;color:white;padding:0;line-height:1}.modal-licencia-body{padding:20px;color:#555;font-size:14px;line-height:1.6}.modal-licencia-footer{padding:15px 20px;background:#f8f9fa;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #eee}.btn-whatsapp{background:#25D366;color:white;padding:10px 18px;border:none;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;transition:background 0.2s}.btn-whatsapp:hover{background:#20bd5a}.btn-entendido{background:#6c757d;color:white;padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:background 0.2s}.btn-entendido:hover{background:#5a6268}@@media(max-width:480px){.modal-licencia-content{width:95%}.modal-licencia-footer{flex-direction:column}.btn-whatsapp,.btn-entendido{width:100%}}
-    </style>
-</head>
-<body>
-    <div class="box">
-        <h1>🔐 Admin Login</h1>
-        @if(!string.IsNullOrEmpty(Model.Message)){<div class="error">@Model.Message</div>}
-        <form method="post">
-            <div class="form-group">
-                <label>👤 Usuario</label>
-                <input type="text" name="Username" required placeholder="admin" />
-            </div>
-            <div class="form-group">
-                <label>🔒 Contraseña</label>
-                <input type="password" name="Password" required placeholder="••••••" />
-            </div>
-            <button type="submit" class="btn">🚀 Ingresar</button>
-        </form>
-    </div>
-    
-    <!-- ✅ Modal de recordatorio de licencia -->
-    @if (Model.ShowLicenseReminder)
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Threading.Tasks;
+using CarniceriaWhatsApp.Services;
+using CarniceriaWhatsApp.Models;
+
+namespace CarniceriaWhatsApp.Pages.Admin
+{
+    public class LoginModel : PageModel
     {
-        <div id="modalLicencia" class="modal-licencia">
-            <div class="modal-licencia-content">
-                <div class="modal-licencia-header">
-                    <h3>📋 Recordatorio de Licencia</h3>
-                    <button onclick="cerrarModalLicencia()">&times;</button>
-                </div>
-                <div class="modal-licencia-body">
-                    <p>El pago de la licencia es <strong>mensual</strong> y debe realizarse entre el <strong>1° y 10° de cada mes</strong>.</p>
-                    <p style="color:#667eea;font-size:13px;margin-top:15px">
-                        💬 ¿Tenés dudas? Contactanos por WhatsApp.
-                    </p>
-                </div>
-                <div class="modal-licencia-footer">
-                    <a href="https://wa.me/5492317401729?text=Hola,%20quiero%20consultar%20sobre%20el%20pago%20de%20mi%20licencia" 
-                       class="btn-whatsapp" 
-                       target="_blank" 
-                       rel="noopener">
-                        💬 Consultar por WhatsApp
-                    </a>
-                    <button onclick="cerrarModalLicencia()" class="btn-entendido">Entendido, ir al panel</button>
-                </div>
-            </div>
-        </div>
+        private readonly ISupabaseService _supabase;
         
-        <script>
-            function cerrarModalLicencia() {
-                document.getElementById('modalLicencia').style.display = 'none';
-                window.location.href = '/Admin/Productos';
+        public string Message { get; set; } = "";
+        public bool BloqueadoPorLicencia { get; set; } = false;
+        public string MensajeBloqueo { get; set; } = "";
+        
+        // ✅ Constructor con inyección de dependencia
+        public LoginModel(ISupabaseService supabase)
+        {
+            _supabase = supabase;
+        }
+        
+        public IActionResult OnGet() => Page();
+        
+        public async Task<IActionResult> OnPostAsync(string Username, string Password)
+        {
+            // ✅ 1. Verificar credenciales básicas
+            if (Username != "admin" || Password != "admin123")
+            {
+                Message = "❌ Usuario o contraseña incorrectos";
+                return Page();
             }
-            setTimeout(function() {
-                const modal = document.getElementById('modalLicencia');
-                if (modal) {
-                    modal.style.display = 'none';
-                    window.location.href = '/Admin/Productos';
+            
+            // ✅ 2. Obtener configuración para verificar estado de licencia
+            var config = await _supabase.ObtenerConfiguracionAsync();
+            var hoy = DateTime.Today;
+            var diaActual = hoy.Day;
+            var mesActual = $"{hoy.Year}-{hoy.Month:D2}";
+            
+            // ✅ 3. Lógica de bloqueo por licencia (solo días 1-10 del mes)
+            if (diaActual >= 1 && diaActual <= 10)
+            {
+                if (!config.LicenciaPagada || config.LicenciaPagadaHasta != mesActual)
+                {
+                    // ❌ Licencia NO pagada → BLOQUEAR ACCESO
+                    BloqueadoPorLicencia = true;
+                    
+                    var diasRestantes = 10 - diaActual;
+                    MensajeBloqueo = $"⚠️ Recordatorio de Licencia\n\n" +
+                        $"El pago de la licencia es mensual y debe realizarse entre el 1° y 10° de cada mes.\n\n" +
+                        $"📅 Hoy es {hoy:dd 'de' MMMM} - Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.\n\n" +
+                        $"💬 Contactanos por WhatsApp para coordinar el pago.";
+                    
+                    return Page();
                 }
-            }, 12000);
-        </script>
+            }
+            
+            // ✅ 4. Login exitoso → Crear sesión y redirigir
+            HttpContext.Session.SetString("AdminLogged", "true");
+            return RedirectToPage("/Admin/Productos");
+        }
     }
-</body>
-</html>
+}
