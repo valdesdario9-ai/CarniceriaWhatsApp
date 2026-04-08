@@ -25,7 +25,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
         
         public async Task<IActionResult> OnPostAsync(string Username, string Password, string MasterKey)
         {
-            System.Console.WriteLine("========================================");
             System.Console.WriteLine($"[LOGIN] Intento de login - Usuario: {Username}");
             
             // ✅ 1. Verificar credenciales básicas
@@ -56,27 +55,43 @@ namespace CarniceriaWhatsApp.Pages.Admin
             {
                 System.Console.WriteLine($"[LICENCIA] ⚠️ Licencia NO está al día");
                 
-                if (diaActual >= 1 && diaActual <= 10)
+                if (claveMaestraValida)
+                {
+                    // 🔑 CLAVE MAESTRA USADA → MARCAR LICENCIA COMO PAGADA AUTOMÁTICAMENTE
+                    System.Console.WriteLine($"[LICENCIA] 🔑 Clave maestra válida - Actualizando BD...");
+                    
+                    try
+                    {
+                        // Actualizar configuración en Supabase
+                        config.LicenciaPagada = true;
+                        config.LicenciaPagadaHasta = mesActual;
+                        config.NotaLicencia = $"Pagó con clave maestra el {hoy:dd/MM/yyyy}";
+                        
+                        await _supabase.ActualizarConfiguracionAsync(config);
+                        
+                        System.Console.WriteLine($"[LICENCIA] ✅ BD actualizada: licencia_pagada=true, hasta={mesActual}");
+                        Message = "🔓 Acceso habilitado - Licencia marcada como pagada para este mes";
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Console.WriteLine($"[LICENCIA] ❌ Error al actualizar BD: {ex.Message}");
+                        Message = "🔓 Acceso habilitado (pero no se pudo actualizar la licencia)";
+                    }
+                }
+                else if (diaActual >= 1 && diaActual <= 10)
                 {
                     // 📅 Días 1-10: Recordatorio con TempData
-                    if (!claveMaestraValida)
-                    {
-                        var diasRestantes = 10 - diaActual;
-                        TempData["LicenseWarning"] = $"⚠️ Recordatorio: Tu licencia vence el 10 de {hoy:MMMM}. Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.";
-                        System.Console.WriteLine($"[LICENCIA] ✅ TempData['LicenseWarning'] establecido");
-                    }
+                    TempData["LicenseWarning"] = $"⚠️ Recordatorio: Tu licencia vence el 10 de {hoy:MMMM}. Te quedan {10 - diaActual} días para regularizar.";
+                    System.Console.WriteLine($"[LICENCIA] ✅ TempData['LicenseWarning'] establecido");
                 }
                 else if (diaActual > 10)
                 {
                     // 📅 Día 11+: BLOQUEO
-                    if (!claveMaestraValida)
-                    {
-                        BloqueadoPorLicencia = true;
-                        var diasVencido = diaActual - 10;
-                        MensajeBloqueo = $"❌ Licencia Vencida\n\nEl pago debía realizarse entre el 1° y 10° de {hoy:MMMM}.\n\n📅 Hoy es {hoy:dd 'de' MMMM} - Tu acceso está bloqueado hace {diasVencido} día{(diasVencido > 1 ? "s" : "")}.\n\n💬 Contactá al desarrollador para regularizar.";
-                        System.Console.WriteLine($"[LICENCIA] ❌ BLOQUEADO");
-                        return Page();
-                    }
+                    BloqueadoPorLicencia = true;
+                    var diasVencido = diaActual - 10;
+                    MensajeBloqueo = $"❌ Licencia Vencida\n\nEl pago debía realizarse entre el 1° y 10° de {hoy:MMMM}.\n\n📅 Hoy es {hoy:dd 'de' MMMM} - Tu acceso está bloqueado hace {diasVencido} días.\n\n💬 Contactá al desarrollador para regularizar.";
+                    System.Console.WriteLine($"[LICENCIA] ❌ BLOQUEADO");
+                    return Page();
                 }
             }
             else
@@ -87,13 +102,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
             // ✅ 5. Login exitoso
             HttpContext.Session.SetString("AdminLogged", "true");
             
-            if (claveMaestraValida)
-            {
-                Message = "🔓 Acceso habilitado con clave de desarrollador";
-            }
-            
             System.Console.WriteLine($"[LOGIN] ✅ Redirigiendo a Productos");
-            System.Console.WriteLine("========================================");
             return RedirectToPage("/Admin/Productos");
         }
     }
