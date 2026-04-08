@@ -12,8 +12,8 @@
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.box{background:white;padding:30px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:100%;max-width:400px}h1{color:#333;margin-bottom:20px;text-align:center}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus{outline:none;border-color:#667eea}.btn{width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn:hover{background:#128C7E}.error{background:#f8d7da;color:#721c24;padding:12px;border-radius:8px;margin-bottom:20px}
         
-        /* ✅ Estilos del modal de licencia */
-        .modal-licencia{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;animation:fadeIn 0.3s ease}@keyframes fadeIn{from{opacity:0}to{opacity:1}}.modal-licencia-content{background:white;border-radius:12px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.3);overflow:hidden;animation:slideUp 0.3s ease}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-licencia-header{padding:15px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;justify-content:space-between;align-items:center}.modal-licencia-header h3{margin:0;font-size:16px;font-weight:600}.modal-licencia-header button{background:none;border:none;font-size:24px;cursor:pointer;color:white;padding:0;line-height:1}.modal-licencia-body{padding:20px;color:#555;font-size:14px;line-height:1.6}.modal-licencia-footer{padding:15px 20px;background:#f8f9fa;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #eee}.btn-whatsapp{background:#25D366;color:white;padding:10px 18px;border:none;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;transition:background 0.2s}.btn-whatsapp:hover{background:#20bd5a}.btn-entendido{background:#6c757d;color:white;padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:background 0.2s}.btn-entendido:hover{background:#5a6268}@@media(max-width:480px){.modal-licencia-content{width:95%}.modal-licencia-footer{flex-direction:column}.btn-whatsapp,.btn-entendido{width:100%}}
+        /* ✅ Modal de licencia - CSS con @@ para Razor */
+        .modal-licencia{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;animation:fadeIn 0.3s ease}@@keyframes fadeIn{from{opacity:0}to{opacity:1}}.modal-licencia-content{background:white;border-radius:12px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.3);overflow:hidden;animation:slideUp 0.3s ease}@@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-licencia-header{padding:15px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;justify-content:space-between;align-items:center}.modal-licencia-header h3{margin:0;font-size:16px;font-weight:600}.modal-licencia-header button{background:none;border:none;font-size:24px;cursor:pointer;color:white;padding:0;line-height:1}.modal-licencia-body{padding:20px;color:#555;font-size:14px;line-height:1.6}.modal-licencia-footer{padding:15px 20px;background:#f8f9fa;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #eee}.btn-whatsapp{background:#25D366;color:white;padding:10px 18px;border:none;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;transition:background 0.2s}.btn-whatsapp:hover{background:#20bd5a}.btn-entendido{background:#6c757d;color:white;padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:background 0.2s}.btn-entendido:hover{background:#5a6268}@@media(max-width:480px){.modal-licencia-content{width:95%}.modal-licencia-footer{flex-direction:column}.btn-whatsapp,.btn-entendido{width:100%}}
     </style>
 </head>
 <body>
@@ -33,7 +33,7 @@
         </form>
     </div>
     
-    <!-- ✅ Modal de recordatorio de licencia (solo después de login exitoso) -->
+    <!-- ✅ Modal de recordatorio de licencia -->
     @if (Model.ShowLicenseReminder)
     {
         <div id="modalLicencia" class="modal-licencia">
@@ -62,13 +62,9 @@
         
         <script>
             function cerrarModalLicencia() {
-                // Ocultar modal
                 document.getElementById('modalLicencia').style.display = 'none';
-                // Redirigir al panel de productos
                 window.location.href = '/Admin/Productos';
             }
-            
-            // Auto-cerrar después de 12 segundos si no interactúa
             setTimeout(function() {
                 const modal = document.getElementById('modalLicencia');
                 if (modal) {
