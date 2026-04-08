@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Threading.Tasks;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using CarniceriaWhatsApp.Services;
 using CarniceriaWhatsApp.Models;
 
@@ -9,6 +12,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
     public class LoginModel : PageModel
     {
         private readonly ISupabaseService _supabase;
+        private readonly HttpClient _httpClient;
         
         private const string MASTER_KEY = "DEV_MASTER_KEY_2026_CARNICERIA_DV7x9Kp2";
         
@@ -16,9 +20,10 @@ namespace CarniceriaWhatsApp.Pages.Admin
         public bool BloqueadoPorLicencia { get; set; } = false;
         public string MensajeBloqueo { get; set; } = "";
         
-        public LoginModel(ISupabaseService supabase)
+        public LoginModel(ISupabaseService supabase, HttpClient httpClient)
         {
             _supabase = supabase;
+            _httpClient = httpClient;
         }
         
         public IActionResult OnGet() => Page();
@@ -57,24 +62,66 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 
                 if (claveMaestraValida)
                 {
-                    // 🔑 CLAVE MAESTRA USADA → MARCAR LICENCIA COMO PAGADA AUTOMÁTICAMENTE
-                    System.Console.WriteLine($"[LICENCIA] 🔑 Clave maestra válida - Actualizando BD...");
+                    // 🔑 CLAVE MAESTRA USADA → ACTUALIZAR BD DIRECTAMENTE CON HTTP REQUEST
+                    System.Console.WriteLine($"[LICENCIA] 🔑 Clave maestra válida - Actualizando BD directamente...");
                     
                     try
                     {
-                        // Actualizar configuración en Supabase
-                        config.LicenciaPagada = true;
-                        config.LicenciaPagadaHasta = mesActual;
-                        config.NotaLicencia = $"Pagó con clave maestra el {hoy:dd/MM/yyyy}";
+                        // Obtener URL y key de Supabase desde variables de entorno
+                        var supabaseUrl = Environment.GetEnvironmentVariable("Supabase__Url") 
+                            ?? "https://wfmoyssyoyqnxqjqedcc.supabase.co";
+                        var supabaseKey = Environment.GetEnvironmentVariable("Supabase__ApiKey");
                         
-                        await _supabase.ActualizarConfiguracionAsync(config);
-                        
-                        System.Console.WriteLine($"[LICENCIA] ✅ BD actualizada: licencia_pagada=true, hasta={mesActual}");
-                        Message = "🔓 Acceso habilitado - Licencia marcada como pagada para este mes";
+                        if (string.IsNullOrEmpty(supabaseKey))
+                        {
+                            System.Console.WriteLine($"[LICENCIA] ❌ ERROR: No hay Supabase API Key configurada");
+                            Message = "🔓 Acceso habilitado (pero no se pudo actualizar la licencia - sin API key)";
+                        }
+                        else
+                        {
+                            // Actualizar directamente vía REST API
+                            var updateData = new
+                            {
+                                licencia_pagada = true,
+                                licencia_pagada_hasta = mesActual,
+                                nota_licencia = $"Pagó con clave maestra el {hoy:dd/MM/yyyy}",
+                                actualizado_en = DateTime.UtcNow.ToString("o")
+                            };
+                            
+                            var json = JsonSerializer.Serialize(updateData);
+                            var content = new StringContent(json, Encoding.UTF8, "application/json");
+                            
+                            // Buscar el ID de la configuración (generalmente es 1)
+                            var configId = config.Id ?? 1;
+                            
+                            using (var client = new HttpClient())
+                            {
+                                client.DefaultRequestHeaders.Add("apikey", supabaseKey);
+                                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {supabaseKey}");
+                                client.DefaultRequestHeaders.Add("Content-Type", "application/json");
+                                client.DefaultRequestHeaders.Add("Prefer", "return=representation");
+                                
+                                var url = $"{supabaseUrl}/rest/v1/configuracion_carniceria?id=eq.{configId}";
+                                var response = await client.PatchAsync(url, content);
+                                
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    System.Console.WriteLine($"[LICENCIA] ✅ BD actualizada EXITOSAMENTE: licencia_pagada=true, hasta={mesActual}");
+                                    Message = "🔓 Acceso habilitado - Licencia marcada como pagada para este mes";
+                                }
+                                else
+                                {
+                                    var errorBody = await response.Content.ReadAsStringAsync();
+                                    System.Console.WriteLine($"[LICENCIA] ❌ Error HTTP {response.StatusCode}: {errorBody}");
+                                    Message = $"🔓 Acceso habilitado (pero error al actualizar: {response.StatusCode})";
+                                }
+                            }
+                        }
                     }
                     catch (System.Exception ex)
                     {
-                        System.Console.WriteLine($"[LICENCIA] ❌ Error al actualizar BD: {ex.Message}");
+                        System.Console.WriteLine($"[LICENCIA] ❌ Exception al actualizar BD: {ex.Message}");
+                        System.Console.WriteLine($"[LICENCIA] Stack: {ex.StackTrace}");
                         Message = "🔓 Acceso habilitado (pero no se pudo actualizar la licencia)";
                     }
                 }
