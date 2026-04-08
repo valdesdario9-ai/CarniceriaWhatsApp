@@ -55,7 +55,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
             
             if (string.IsNullOrEmpty(MasterKey) || MasterKey != MASTER_KEY)
             {
-                Message = "❌ Clave de licencia incorrecta";
+                Message = "❌ Clave incorrecta";
                 IsError = true;
                 await VerificarEstadoLicencia();
                 Productos = await _supabase.ObtenerProductosAsync();
@@ -69,8 +69,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 var config = await _supabase.ObtenerConfiguracionAsync();
                 var hoy = DateTime.Today;
                 var mesActual = $"{hoy.Year}-{hoy.Month:D2}";
-                
-                System.Console.WriteLine($"[LICENCIA] 📋 Antes: pagada={config.LicenciaPagada}, hasta='{config.LicenciaPagadaHasta ?? "NULL"}'");
                 
                 var updateData = new
                 {
@@ -108,42 +106,34 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 var response = await _httpClient.PatchAsync(url, content);
                 var responseBody = await response.Content.ReadAsStringAsync();
                 
-                System.Console.WriteLine($"[LICENCIA] 📡 Response: {response.StatusCode}");
-                
                 if (response.IsSuccessStatusCode)
                 {
-                    // ✅ Parsear respuesta del PATCH para confirmar actualización
                     using var doc = JsonDocument.Parse(responseBody);
                     if (doc.RootElement.GetArrayLength() > 0)
                     {
                         var updatedConfig = doc.RootElement[0];
-                        var licenciaPagadaActualizada = updatedConfig.TryGetProperty("licencia_pagada", out var lp) && lp.GetBoolean();
-                        var licenciaHastaActualizada = updatedConfig.TryGetProperty("licencia_pagada_hasta", out var lh) ? lh.GetString() : null;
+                        var lp = updatedConfig.TryGetProperty("licencia_pagada", out var p) && p.GetBoolean();
+                        var lh = updatedConfig.TryGetProperty("licencia_pagada_hasta", out var h) ? h.GetString() : null;
                         
-                        System.Console.WriteLine($"[LICENCIA] ✅ Desde PATCH: pagada={licenciaPagadaActualizada}, hasta='{licenciaHastaActualizada}'");
+                        System.Console.WriteLine($"[LICENCIA] ✅ PATCH: pagada={lp}, hasta='{lh}'");
                         
-                        if (licenciaPagadaActualizada && licenciaHastaActualizada == mesActual)
+                        if (lp && lh == mesActual)
                         {
-                            // ✅ SOLUCIÓN: NO REDIRIGIR, retornar Page() directamente
-                            // Así usamos el mismo contexto de request y el estado local forzado
-                            Message = "✅ ¡Gracias! Licencia activada para este mes. No volverá a aparecer hasta el próximo mes.";
+                            Message = "✅ ¡Gracias! Licencia activada para este mes.";
                             IsError = false;
-                            LicenciaActivadaEsteMes = true;  // ← Forzar estado local
-                            MostrarBannerLicencia = false;    // ← Ocultar banner
-                            
-                            // ✅ Recargar productos para la vista
+                            LicenciaActivadaEsteMes = true;
+                            MostrarBannerLicencia = false;
                             Productos = await _supabase.ObtenerProductosAsync();
                             
-                            System.Console.WriteLine($"[LICENCIA] 🎉 Retornando Page() con estado forzado (sin redirect)");
+                            System.Console.WriteLine($"[LICENCIA] 🎉 Retornando Page() con estado forzado");
                             System.Console.WriteLine("========================================");
-                            return Page();  // ← ✅ CLAVE: No redirigir
+                            return Page();
                         }
                     }
                 }
                 else
                 {
-                    System.Console.WriteLine($"[LICENCIA] ❌ Error HTTP {response.StatusCode}");
-                    Message = $"❌ Error ({response.StatusCode})";
+                    Message = $"❌ Error HTTP {response.StatusCode}";
                     IsError = true;
                 }
             }
@@ -160,11 +150,15 @@ namespace CarniceriaWhatsApp.Pages.Admin
             return Page();
         }
         
+        // ✅ CORREGIDO: VerificarEstadoLicencia con cache-busting
         private async Task VerificarEstadoLicencia()
         {
             try
             {
-                var config = await _supabase.ObtenerConfiguracionAsync();
+                // ✅ OBTENER CONFIGURACIÓN CON CACHE-BUSTING
+                // Agregamos un timestamp único para forzar lectura fresca de Supabase
+                var config = await ObtenerConfiguracionFrescaAsync();
+                
                 var hoy = DateTime.Today;
                 var diaActual = hoy.Day;
                 var mesActual = $"{hoy.Year}-{hoy.Month:D2}";
@@ -197,6 +191,78 @@ namespace CarniceriaWhatsApp.Pages.Admin
             {
                 System.Console.WriteLine($"[BANNER] ❌ Error: {ex.Message}");
             }
+        }
+        
+        // ✅ NUEVO MÉTODO: Obtener configuración fresca con cache-busting
+        private async Task<ConfiguracionCarniceria> ObtenerConfiguracionFrescaAsync()
+        {
+            try
+            {
+                var supabaseUrl = Environment.GetEnvironmentVariable("Supabase__Url") 
+                    ?? "https://wfmoyssyoyqnxqjqedcc.supabase.co";
+                var supabaseKey = Environment.GetEnvironmentVariable("Supabase__ApiKey");
+                
+                if (string.IsNullOrEmpty(supabaseKey))
+                {
+                    // Fallback al método del servicio si no hay API key
+                    return await _supabase.ObtenerConfiguracionAsync();
+                }
+                
+                // ✅ Agregar timestamp único para evitar cache
+                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var url = $"{supabaseUrl}/rest/v1/configuracion_carniceria?select=*&order=id.asc&limit=1&_t={timestamp}";
+                
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("apikey", supabaseKey);
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {supabaseKey}");
+                
+                var response = await client.GetAsync(url);
+                var responseBody = await response.Content.ReadAsStringAsync();
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    using var doc = JsonDocument.Parse(responseBody);
+                    if (doc.RootElement.GetArrayLength() > 0)
+                    {
+                        var element = doc.RootElement[0];
+                        
+                        // ✅ Mapear manualmente los campos (snake_case → PascalCase)
+                        var config = new ConfiguracionCarniceria();
+                        
+                        if (element.TryGetProperty("id", out var id)) config.Id = id.GetInt64();
+                        if (element.TryGetProperty("nombre_tienda", out var nt)) config.NombreTienda = nt.GetString();
+                        if (element.TryGetProperty("descripcion", out var d)) config.Descripcion = d.GetString();
+                        if (element.TryGetProperty("telefono", out var t)) config.Telefono = t.GetString();
+                        if (element.TryGetProperty("whatsapp", out var w)) config.Whatsapp = w.GetString();
+                        if (element.TryGetProperty("email", out var e)) config.Email = e.GetString();
+                        if (element.TryGetProperty("direccion", out var dir)) config.Direccion = dir.GetString();
+                        if (element.TryGetProperty("ciudad", out var c)) config.Ciudad = c.GetString();
+                        if (element.TryGetProperty("provincia", out var p)) config.Provincia = p.GetString();
+                        if (element.TryGetProperty("logo_url", out var lu)) config.LogoUrl = lu.GetString();
+                        if (element.TryGetProperty("banner_url", out var bu)) config.BannerUrl = bu.GetString();
+                        if (element.TryGetProperty("horarios", out var h)) config.Horarios = h.GetString();
+                        if (element.TryGetProperty("alias_mercadopago", out var amp)) config.AliasMercadoPago = amp.GetString();
+                        if (element.TryGetProperty("cbu", out var cbu)) config.Cbu = cbu.GetString();
+                        if (element.TryGetProperty("instrucciones_pago", out var ip)) config.InstruccionesPago = ip.GetString();
+                        
+                        // ✅ Campos de licencia
+                        if (element.TryGetProperty("licencia_pagada", out var lp)) config.LicenciaPagada = lp.GetBoolean();
+                        if (element.TryGetProperty("licencia_pagada_hasta", out var lh)) config.LicenciaPagadaHasta = lh.GetString();
+                        if (element.TryGetProperty("nota_licencia", out var nl)) config.NotaLicencia = nl.GetString();
+                        
+                        System.Console.WriteLine($"[CONFIG] 🔄 Lectura fresca: pagada={config.LicenciaPagada}, hasta='{config.LicenciaPagadaHasta}'");
+                        
+                        return config;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                System.Console.WriteLine($"[CONFIG] ❌ Error lectura fresca: {ex.Message}");
+            }
+            
+            // Fallback al método del servicio si falla la lectura directa
+            return await _supabase.ObtenerConfiguracionAsync();
         }
     }
 }
