@@ -57,12 +57,12 @@ namespace CarniceriaWhatsApp.Models
         [JsonPropertyName("actualizado_en")]
         public DateTime? ActualizadoEn { get; set; }
         
-        // ✅ NUEVAS PROPIEDADES PARA CONTROL DE LICENCIA
+        // ✅ PROPIEDADES DE LICENCIA (CON MAPEO JSON EXPLÍCITO)
         [JsonPropertyName("licencia_pagada")]
         public bool LicenciaPagada { get; set; } = false;
         
         [JsonPropertyName("licencia_pagada_hasta")]
-        public string? LicenciaPagadaHasta { get; set; }  // Formato: "2026-04"
+        public string? LicenciaPagadaHasta { get; set; }
         
         [JsonPropertyName("nota_licencia")]
         public string? NotaLicencia { get; set; } = "";
