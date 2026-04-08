@@ -35,15 +35,14 @@ namespace CarniceriaWhatsApp.Pages.Admin
             var config = await _supabase.ObtenerConfiguracionAsync();
             var hoy = DateTime.Today;
             var diaActual = hoy.Day;
-            var mesActual = $"{hoy.Year}-{hoy.Month:D2}";  // Ej: "2026-04"
+            var mesActual = $"{hoy.Year}-{hoy.Month:D2}";
             
             // ✅ 3. Lógica de bloqueo por licencia (solo días 1-10 del mes)
             if (diaActual >= 1 && diaActual <= 10)
             {
-                // 📅 Período de pago obligatorio
                 if (!config.LicenciaPagada || config.LicenciaPagadaHasta != mesActual)
                 {
-                    // ❌ Licencia NO pagada para este mes → BLOQUEAR ACCESO
+                    // ❌ Licencia NO pagada → BLOQUEAR ACCESO
                     BloqueadoPorLicencia = true;
                     
                     var diasRestantes = 10 - diaActual;
@@ -52,13 +51,11 @@ namespace CarniceriaWhatsApp.Pages.Admin
                         $"📅 Hoy es {hoy:dd 'de' MMMM} - Te quedan {diasRestantes} día{(diasRestantes > 1 ? "s" : "")} para regularizar.\n\n" +
                         $"💬 Contactanos por WhatsApp para coordinar el pago.";
                     
-                    // ⚠️ IMPORTANTE: NO crear sesión, mostrar página de bloqueo
                     return Page();
                 }
             }
-            // 📅 Días 11-31: Período de gracia, acceso permitido siempre
             
-            // ✅ 4. Login exitoso → Crear sesión y redirigir al panel
+            // ✅ 4. Login exitoso → Crear sesión y redirigir
             HttpContext.Session.SetString("AdminLogged", "true");
             return RedirectToPage("/Admin/Productos");
         }
