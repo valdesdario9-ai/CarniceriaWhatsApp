@@ -10,56 +10,24 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>@ViewData["Title"]</title>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.box{background:white;padding:30px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:100%;max-width:400px}h1{color:#333;margin-bottom:20px;text-align:center}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus{outline:none;border-color:#667eea}.btn{width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn:hover{background:#128C7E}.error{background:#f8d7da;color:#721c24;padding:12px;border-radius:8px;margin-bottom:20px}.success{background:#d4edda;color:#155724;padding:12px;border-radius:8px;margin-bottom:20px}.bloqueo-licencia{background:white;padding:25px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);width:100%;max-width:450px;text-align:center;border-top:4px solid #dc3545}.bloqueo-licencia h2{color:#721c24;margin-bottom:15px;font-size:18px}.bloqueo-licencia p{color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;white-space:pre-line}.btn-whatsapp{background:#25D366;color:white;padding:12px 24px;border:none;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block;margin:5px}.btn-whatsapp:hover{background:#20bd5a}.btn-email{background:#667eea;color:white;padding:12px 24px;border:none;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block;margin:5px}.btn-email:hover{background:#5568d3}.master-key-field{border-top:1px solid #eee;padding-top:15px;margin-top:15px}.master-key-field label{font-size:13px;color:#666}.master-key-field input{font-size:14px;padding:10px}.master-key-field small{color:#999;display:block;margin-top:5px}
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.box{background:white;padding:30px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:100%;max-width:400px}h1{color:#333;margin-bottom:20px;text-align:center}.form-group{margin-bottom:20px}label{display:block;margin-bottom:8px;font-weight:600;color:#333}input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}input:focus{outline:none;border-color:#667eea}.btn{width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.btn:hover{background:#128C7E}.error{background:#f8d7da;color:#721c24;padding:12px;border-radius:8px;margin-bottom:20px}
     </style>
 </head>
 <body>
-    @if (Model.BloqueadoPorLicencia)
-    {
-        <!-- ✅ PANTALLA DE BLOQUEO (día 11+) -->
-        <div class="bloqueo-licencia">
-            <h2>❌ Acceso Bloqueado</h2>
-            <p>@Model.MensajeBloqueo</p>
-            <div>
-                <a href="https://wa.me/5492317401729?text=Hola,%20necesito%20activar%20mi%20licencia" class="btn-whatsapp" target="_blank" rel="noopener">💬 Contactar por WhatsApp</a>
-                <br>
-                <a href="mailto:dariovaldes@hotmail.com?subject=Activar%20Licencia" class="btn-email">✉️ Enviar Email</a>
+    <div class="box">
+        <h1>🔐 Admin Login</h1>
+        @if(!string.IsNullOrEmpty(Model.Message)){<div class="error">@Model.Message</div>}
+        <form method="post">
+            <div class="form-group">
+                <label>👤 Usuario</label>
+                <input type="text" name="Username" required placeholder="admin" />
             </div>
-        </div>
-    }
-    else
-    {
-        <!-- ✅ FORMULARIO DE LOGIN -->
-        <div class="box">
-            <h1>🔐 Admin Login</h1>
-            
-            @if(!string.IsNullOrEmpty(Model.Message))
-            {
-                <div class="@(Model.Message.Contains("✅") || Model.Message.Contains("🔓") ? "success" : "error")">
-                    @Model.Message
-                </div>
-            }
-            
-            <form method="post">
-                <div class="form-group">
-                    <label>👤 Usuario</label>
-                    <input type="text" name="Username" required placeholder="admin" />
-                </div>
-                <div class="form-group">
-                    <label>🔒 Contraseña</label>
-                    <input type="password" name="Password" required placeholder="••••••" />
-                </div>
-                
-                <!-- 🔑 CAMPO DE CLAVE MAESTRA -->
-                <div class="master-key-field">
-                    <label>🔑 Clave de licencia <span style="font-weight:normal">(solo desarrollador)</span></label>
-                    <input type="password" name="MasterKey" placeholder="Ingresá la clave para activar licencia" />
-                    <small>Usá esta clave para activar la licencia cuando el cliente paga</small>
-                </div>
-                
-                <button type="submit" class="btn">🚀 Ingresar</button>
-            </form>
-        </div>
-    }
+            <div class="form-group">
+                <label>🔒 Contraseña</label>
+                <input type="password" name="Password" required placeholder="••••••" />
+            </div>
+            <button type="submit" class="btn">🚀 Ingresar</button>
+        </form>
+    </div>
 </body>
 </html>
