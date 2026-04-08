@@ -17,6 +17,10 @@ namespace CarniceriaWhatsApp.Pages.Admin
         
         private const string MASTER_KEY = "DEV_MASTER_KEY_2026_CARNICERIA_DV7x9Kp2";
         
+        // ✅ Variable local para guardar estado después de activar
+        private bool _licenciaRecienActivada = false;
+        private string _mesActivado = "";
+        
         public ProductosModel(ISupabaseService supabase, HttpClient httpClient)
         {
             _supabase = supabase;
@@ -85,9 +89,11 @@ namespace CarniceriaWhatsApp.Pages.Admin
                     ?? "https://wfmoyssyoyqnxqjqedcc.supabase.co";
                 var supabaseKey = Environment.GetEnvironmentVariable("Supabase__ApiKey");
                 
+                System.Console.WriteLine($"[LICENCIA] 🔑 API Key configurada: {!string.IsNullOrEmpty(supabaseKey)}");
+                
                 if (string.IsNullOrEmpty(supabaseKey))
                 {
-                    Message = "❌ Error: API key no configurada";
+                    Message = "❌ Error: API key no configurada en Render";
                     IsError = true;
                     await VerificarEstadoLicencia();
                     Productos = await _supabase.ObtenerProductosAsync();
@@ -106,6 +112,8 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 var response = await _httpClient.PatchAsync(url, content);
                 var responseBody = await response.Content.ReadAsStringAsync();
                 
+                System.Console.WriteLine($"[LICENCIA] 📡 Response: {response.StatusCode}");
+                
                 if (response.IsSuccessStatusCode)
                 {
                     using var doc = JsonDocument.Parse(responseBody);
@@ -119,13 +127,17 @@ namespace CarniceriaWhatsApp.Pages.Admin
                         
                         if (lp && lh == mesActual)
                         {
+                            // ✅ GUARDAR ESTADO LOCAL PARA USAR EN PRÓXIMAS LECTURAS
+                            _licenciaRecienActivada = true;
+                            _mesActivado = mesActual;
+                            
                             Message = "✅ ¡Gracias! Licencia activada para este mes.";
                             IsError = false;
                             LicenciaActivadaEsteMes = true;
                             MostrarBannerLicencia = false;
                             Productos = await _supabase.ObtenerProductosAsync();
                             
-                            System.Console.WriteLine($"[LICENCIA] 🎉 Retornando Page() con estado forzado");
+                            System.Console.WriteLine($"[LICENCIA] 🎉 Estado local guardado: mes={_mesActivado}");
                             System.Console.WriteLine("========================================");
                             return Page();
                         }
@@ -150,14 +162,29 @@ namespace CarniceriaWhatsApp.Pages.Admin
             return Page();
         }
         
-        // ✅ CORREGIDO: VerificarEstadoLicencia con cache-busting
+        // ✅ CORREGIDO: VerificarEstadoLicencia con variable local
         private async Task VerificarEstadoLicencia()
         {
             try
             {
-                // ✅ OBTENER CONFIGURACIÓN CON CACHE-BUSTING
-                // Agregamos un timestamp único para forzar lectura fresca de Supabase
-                var config = await ObtenerConfiguracionFrescaAsync();
+                ConfiguracionCarniceria config;
+                
+                // ✅ Si la licencia fue activada recientemente en esta sesión, usar valores locales
+                if (_licenciaRecienActivada && !string.IsNullOrEmpty(_mesActivado))
+                {
+                    System.Console.WriteLine($"[BANNER] 🔄 Usando estado local: pagada=True, hasta='{_mesActivado}'");
+                    config = new ConfiguracionCarniceria 
+                    { 
+                        LicenciaPagada = true, 
+                        LicenciaPagadaHasta = _mesActivado 
+                    };
+                }
+                else
+                {
+                    // ✅ Intentar lectura fresca con cache-busting
+                    config = await ObtenerConfiguracionFrescaAsync();
+                    System.Console.WriteLine($"[BANNER] 🔄 Leyendo de Supabase: pagada={config.LicenciaPagada}, hasta='{config.LicenciaPagadaHasta ?? "NULL"}'");
+                }
                 
                 var hoy = DateTime.Today;
                 var diaActual = hoy.Day;
@@ -193,7 +220,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
             }
         }
         
-        // ✅ NUEVO MÉTODO: Obtener configuración fresca con cache-busting
+        // ✅ Método de lectura fresca con logging mejorado
         private async Task<ConfiguracionCarniceria> ObtenerConfiguracionFrescaAsync()
         {
             try
@@ -202,15 +229,18 @@ namespace CarniceriaWhatsApp.Pages.Admin
                     ?? "https://wfmoyssyoyqnxqjqedcc.supabase.co";
                 var supabaseKey = Environment.GetEnvironmentVariable("Supabase__ApiKey");
                 
+                System.Console.WriteLine($"[CONFIG] 🔑 API Key para lectura fresca: {!string.IsNullOrEmpty(supabaseKey)}");
+                
                 if (string.IsNullOrEmpty(supabaseKey))
                 {
-                    // Fallback al método del servicio si no hay API key
+                    System.Console.WriteLine($"[CONFIG] ⚠️ Sin API Key, usando fallback");
                     return await _supabase.ObtenerConfiguracionAsync();
                 }
                 
-                // ✅ Agregar timestamp único para evitar cache
                 var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 var url = $"{supabaseUrl}/rest/v1/configuracion_carniceria?select=*&order=id.asc&limit=1&_t={timestamp}";
+                
+                System.Console.WriteLine($"[CONFIG] 🔗 URL fresca: {url}");
                 
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("apikey", supabaseKey);
@@ -219,14 +249,14 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 var response = await client.GetAsync(url);
                 var responseBody = await response.Content.ReadAsStringAsync();
                 
+                System.Console.WriteLine($"[CONFIG] 📡 Response fresca: {response.StatusCode}");
+                
                 if (response.IsSuccessStatusCode)
                 {
                     using var doc = JsonDocument.Parse(responseBody);
                     if (doc.RootElement.GetArrayLength() > 0)
                     {
                         var element = doc.RootElement[0];
-                        
-                        // ✅ Mapear manualmente los campos (snake_case → PascalCase)
                         var config = new ConfiguracionCarniceria();
                         
                         if (element.TryGetProperty("id", out var id)) config.Id = id.GetInt64();
@@ -250,18 +280,26 @@ namespace CarniceriaWhatsApp.Pages.Admin
                         if (element.TryGetProperty("licencia_pagada_hasta", out var lh)) config.LicenciaPagadaHasta = lh.GetString();
                         if (element.TryGetProperty("nota_licencia", out var nl)) config.NotaLicencia = nl.GetString();
                         
-                        System.Console.WriteLine($"[CONFIG] 🔄 Lectura fresca: pagada={config.LicenciaPagada}, hasta='{config.LicenciaPagadaHasta}'");
+                        System.Console.WriteLine($"[CONFIG] 🔄 Lectura fresca EXITOSA: pagada={config.LicenciaPagada}, hasta='{config.LicenciaPagadaHasta}'");
                         
                         return config;
                     }
+                    else
+                    {
+                        System.Console.WriteLine($"[CONFIG] ❌ JSON array vacío");
+                    }
+                }
+                else
+                {
+                    System.Console.WriteLine($"[CONFIG] ❌ HTTP {response.StatusCode}: {responseBody}");
                 }
             }
             catch (System.Exception ex)
             {
-                System.Console.WriteLine($"[CONFIG] ❌ Error lectura fresca: {ex.Message}");
+                System.Console.WriteLine($"[CONFIG] ❌ Exception lectura fresca: {ex.Message}");
             }
             
-            // Fallback al método del servicio si falla la lectura directa
+            System.Console.WriteLine($"[CONFIG] ⚠️ Fallback a método del servicio");
             return await _supabase.ObtenerConfiguracionAsync();
         }
     }
