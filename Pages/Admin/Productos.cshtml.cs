@@ -32,15 +32,20 @@ namespace CarniceriaWhatsApp.Pages.Admin
         public string MensajeBannerLicencia { get; set; } = "";
         public bool LicenciaActivadaEsteMes { get; set; } = false;
         
+        // ✅ CORREGIDO: OnGetAsync
         public async Task<IActionResult> OnGetAsync()
         {
             if (HttpContext.Session.GetString("AdminLogged") != "true")
                 return RedirectToPage("/Admin/Login");
             
             Productos = await _supabase.ObtenerProductosAsync();
+            
+            // ✅ 1. Primero verificar estado de licencia (esto es lo importante)
             await VerificarEstadoLicencia();
             
-            if (TempData["LicenseWarning"] != null)
+            // ✅ 2. Solo mostrar TempData si la licencia NO está activada este mes
+            // (evita que un mensaje viejo override el estado actual)
+            if (TempData["LicenseWarning"] != null && !LicenciaActivadaEsteMes)
             {
                 MostrarBannerLicencia = true;
                 MensajeBannerLicencia = TempData["LicenseWarning"].ToString();
@@ -49,7 +54,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
             return Page();
         }
         
-        // ✅ HANDLER: Activar licencia con actualización DIRECTA (CORREGIDO)
+        // ✅ HANDLER: Activar licencia con actualización DIRECTA
         public async Task<IActionResult> OnPostActivarLicenciaAsync(string MasterKey)
         {
             System.Console.WriteLine("========================================");
@@ -111,7 +116,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
                     return Page();
                 }
                 
-                // ✅ 5. Hacer PATCH directo (CORREGIDO: sin Content-Type en headers)
+                // ✅ 5. Hacer PATCH directo
                 var configId = config.Id ?? 1;
                 var url = $"{supabaseUrl}/rest/v1/configuracion_carniceria?id=eq.{configId}";
                 
@@ -121,7 +126,6 @@ namespace CarniceriaWhatsApp.Pages.Admin
                 _httpClient.DefaultRequestHeaders.Clear();
                 _httpClient.DefaultRequestHeaders.Add("apikey", supabaseKey);
                 _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {supabaseKey}");
-                // ✅ NO agregar Content-Type aquí (es header de contenido, va en StringContent)
                 _httpClient.DefaultRequestHeaders.Add("Prefer", "return=representation");
                 
                 // ✅ StringContent ya establece Content-Type automáticamente
