@@ -48,12 +48,12 @@
                 </div>
             }
             
-            @if(Model.MostrarRecordatorio)
-            {
-                <div class="warning">
-                    @Model.MensajeRecordatorio
-                </div>
-            }
+          @if(Model.MostrarRecordatorio)
+{
+    <div class="warning">
+        <strong>@Model.MensajeRecordatorio</strong>
+    </div>
+}
             
             <form method="post">
                 <div class="form-group">
