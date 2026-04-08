@@ -6,6 +6,7 @@ namespace CarniceriaWhatsApp.Pages.Admin
     public class LoginModel : PageModel
     {
         public string Message { get; set; } = "";
+        public bool ShowLicenseReminder { get; set; } = false;
         
         public IActionResult OnGet() => Page();
         
@@ -15,7 +16,12 @@ namespace CarniceriaWhatsApp.Pages.Admin
             if (Username == "admin" && Password == "admin123")
             {
                 HttpContext.Session.SetString("AdminLogged", "true");
-                return RedirectToPage("/Admin/Productos");
+                
+                // ✅ Mostrar recordatorio de licencia después del login
+                ShowLicenseReminder = true;
+                
+                // ✅ Renderizar la misma página con el modal visible
+                return Page();
             }
             
             Message = "❌ Usuario o contraseña incorrectos";
