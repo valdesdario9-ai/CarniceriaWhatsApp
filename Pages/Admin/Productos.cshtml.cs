@@ -134,6 +134,44 @@ namespace CarniceriaWhatsApp.Pages.Admin
             }
         }
         
+        // ✅ ✅ ✅ MÉTODO NUEVO AGREGADO: ELIMINAR PRODUCTO ✅ ✅ ✅
+        public async Task<IActionResult> OnPostDeleteAsync(int id)
+        {
+            System.Console.WriteLine($"[DELETE] Intentando eliminar producto ID: {id}");
+            
+            try
+            {
+                var resultado = await _supabase.EliminarProductoAsync(id);
+                
+                if (resultado)
+                {
+                    Message = "✅ Producto eliminado correctamente";
+                    IsError = false;
+                    System.Console.WriteLine($"[DELETE] ✅ Eliminado: {id}");
+                }
+                else
+                {
+                    Message = "❌ No se pudo eliminar el producto";
+                    IsError = true;
+                    System.Console.WriteLine($"[DELETE] ❌ Falló eliminación: {id}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Message = $"❌ Error: {ex.Message}";
+                IsError = true;
+                System.Console.WriteLine($"[DELETE] ❌ Exception: {ex.Message}");
+            }
+            
+            // ✅ CRÍTICO: Recargar la lista de productos después de eliminar
+            try { Productos = await _supabase.ObtenerProductosAsync(); } catch {}
+            
+            System.Console.WriteLine($"[DELETE] 📦 Productos recargados: {Productos?.Count ?? 0}");
+            
+            return Page(); // ✅ Mantener en la misma página con lista actualizada
+        }
+        // ✅ ✅ ✅ FIN DEL MÉTODO AGREGADO ✅ ✅ ✅
+        
         private async Task VerificarEstadoLicencia()
         {
             try
