@@ -7,13 +7,11 @@ namespace CarniceriaWhatsApp.Pages.Admin
     {
         public IActionResult OnGet()
         {
-            // ✅ Eliminar sesión de admin
+            // ✅ Solo eliminar sesión de admin, NO la de licencia
             HttpContext.Session.Remove("AdminLogged");
+            // NO hacer Session.Clear() para mantener LicenciaActivada_2026-04
             
-            // ✅ Eliminar sesión de licencia
-            HttpContext.Session.Clear();
-            
-            // ✅ REDIRIGIR A LA TIENDA (no quedarse en admin)
+            // ✅ Redirigir a la tienda
             return Redirect("/");
         }
         
